@@ -1,6 +1,6 @@
 // Read-only checks against the published site. This does not create test users,
 // send emails, or modify a learner's progress.
-const target = new URL(process.argv[2] || 'https://javasscripcoursefree.netlify.app');
+const target = new URL(process.argv[2] || 'https://javascriptcoursefree.netlify.app');
 if (!['https:', 'http:'].includes(target.protocol)) throw Error('Use an HTTP or HTTPS website URL.');
 
 const checks = [];

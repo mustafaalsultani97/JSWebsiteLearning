@@ -54,12 +54,12 @@ store passed a cloud write/read check. Use `npm run check:live` to check its cur
 status. The steps below also describe how to set up another deployment.
 
 1. Commit these files to the GitHub repository connected to
-   **javasscripcoursefree.netlify.app**. Keep `package.json`, `netlify.toml`,
+   **javascriptcoursefree.netlify.app**. Keep `package.json`, `netlify.toml`,
    `javascript-course/`, `shared/`, `server/`, and `netlify/` at the repository root.
-2. In Netlify, open **javasscripcoursefree → Identity → Enable Identity**.
+2. In Netlify, open **javascriptcoursefree → Identity → Enable Identity**.
 3. Allow open registration if everyone should be able to join. Keep email
    confirmation enabled. Confirm the site's URL is
-   `https://javasscripcoursefree.netlify.app` in Identity's email settings.
+   `https://javascriptcoursefree.netlify.app` in Identity's email settings.
 4. Deploy the updated repository. `netlify.toml` configures `npm run build`, the
    `dist` publish folder, Node 22, and the server function. The base directory should
    be the repository root. No database password or API key goes in the browser code.
