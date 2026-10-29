@@ -6396,7 +6396,9 @@ $("#shade").onclick = () => setMenu(false);
 $("#home-link").addEventListener("click", (event) => {
   if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  navigate("course");
+  lessonState(COURSE.lessons[0]).step = 0;
+  navigate("lesson-first-program");
+  focusLesson();
 });
 $("#playground-button").onclick = () => openRunner();
 $("#settings-button").onclick = () => {
