@@ -98,6 +98,7 @@ storage require the Netlify deployment. Press Ctrl+C to stop the preview.
 | `javascript-course/style.css` | Colors, spacing, layout and mobile styles |
 | `javascript-course/script.js` | Navigation, lesson screens, code runners and progress |
 | `javascript-course/lessons/` | Teaching text, examples, practice tasks, hints, solutions and quizzes, grouped into four topic files |
+| `javascript-course/extra-practice/` | Ten optional exercises per lesson, with independent checks, hints and explained solutions |
 | `javascript-course/accounts.js` | Sign-in, signup, sign-out, recovery and account UI |
 | `javascript-course/progress-sync.js` | Browser backup, retry, and cloud synchronization |
 | `shared/progress.js` | Data validation and merging changes from different devices |
@@ -111,6 +112,26 @@ solution, checks that the starter still requires learner work, and verifies that
 both course versions fit the account progress schema.
 The build keeps HTML, CSS and JavaScript separate. The JavaScript bundle is readable
 and includes the account SDK, so there are no runtime CDN dependencies.
+
+## Optional extra practice
+
+Every lesson offers **10 optional exercises (210 total)**. After completing the
+required lesson, learners can choose **Next lesson** or **Practice more**. The
+extra-practice button is also available at any time. All ten cards are unlocked;
+learners can choose any order and leave whenever they want. Git uses ten command
+scenarios; the other lessons use checked JavaScript exercises.
+
+Each exercise saves its own code draft or choice and completion status. Guests
+save on this browser; signed-in learners also save through the existing private
+progress service. These results never affect the required lesson score. The
+extra-practice screen and selected exercise are restored when learners return.
+
+To edit an exercise, find its lesson ID in `extra-practice/`. Keep the existing
+array order stable: IDs `p01` through `p10` correspond to saved attempts. Each
+code task defines instructions, a starter, a worked solution, check expressions,
+a hint, and solution reasoning. `npm test` runs all 200 extra code solutions,
+verifies that their starters need work, validates the ten Git scenarios, and
+checks saving and concurrent edits within the same lesson.
 
 ## Storage and access
 

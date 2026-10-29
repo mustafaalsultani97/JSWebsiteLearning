@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { cleanProgress, freshProgress } from '../shared/progress.js';
+import { cleanProgress, freshProgress, cleanExtraProgress, isExtraId } from '../shared/progress.js';
 import { lesson } from './helpers.mjs';
 import { COURSE, lessonProgressKeys, initialLessonCode, hasLessonWork } from '../javascript-course/lessons/index.js';
 
@@ -27,7 +27,7 @@ test('every existing lesson and reference bookmark fits the cloud progress schem
   // Browser validation must also preserve both editions through account loads/backups.
   const validation = source.slice(source.indexOf('function freshCourse()'), source.indexOf('function lessonState('));
   const browserCourse = vm.runInNewContext(validation + '\nvalidateCourse(value)', {
-    COURSE, lessonProgressKeys, initialLessonCode, value: cleaned.course,
+    COURSE, lessonProgressKeys, initialLessonCode, cleanExtraProgress, isExtraId, value: cleaned.course,
   });
   assert.equal(Object.keys(browserCourse.lessons).length, 42);
   for (const [key, state] of Object.entries(cleaned.course.lessons)) {

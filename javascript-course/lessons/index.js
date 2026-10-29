@@ -3,6 +3,7 @@ import { controlFlow } from './control-flow.js';
 import { functionsLessons } from './functions.js';
 import { advanced } from './advanced.js';
 import { legacyStarters } from './legacy-starters.js';
+import { extraByLesson } from '../extra-practice/index.js';
 
 // Routes stay stable. Separate progress keys keep earlier drafts and quiz answers
 // from being mistaken for attempts at these newly authored exercises.
@@ -11,7 +12,8 @@ export const lessonProgressKeys = (lesson) => [lesson.id, lessonProgressKey(less
 export const initialLessonCode = (lesson, key) => key === lesson.id ? legacyStarters[lesson.id] : (lesson.exercise.starter || '');
 export const hasLessonWork = (state, starter) => !!state && (
   state.step > 0 || state.read.length > 0 || state.passed || state.best > 0 || state.submitted ||
-  state.answers.some(answer => answer !== null) || state.order.length > 0 || state.code !== starter
+  state.answers.some(answer => answer !== null) || state.order.length > 0 || state.code !== starter ||
+  Object.keys(state.extra || {}).length > 0
 );
 export const COURSE = {
   modules: [
@@ -21,4 +23,5 @@ export const COURSE = {
     { id:'higher-order', label:'04', title:'Write flexible, focused functions', subtitle:'Callbacks, filter, map & AI-assisted refactoring', swedish:'Högre ordningens funktioner & AI-refaktorisering', source:'https://stalwart-gaufre-a22d54.netlify.app/', sourceTitle:'Högre Ordningens Funktioner & AI-Refaktorisering · Week 44' }
   ],
   lessons: [...foundations, ...controlFlow, ...functionsLessons, ...advanced]
+    .map(lesson => ({ ...lesson, extras: extraByLesson[lesson.id] }))
 };

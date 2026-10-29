@@ -12,6 +12,7 @@
 */
 
 import { createAccounts } from './accounts.js';
+import { cleanExtraProgress, isExtraId, mergeExtraProgress } from '../shared/progress.js';
 /* 1. COURSE CONTENT — authored lessons live in lessons/, grouped by topic. */
 import { COURSE, lessonProgressKey, lessonProgressKeys, initialLessonCode, hasLessonWork } from "./lessons/index.js";
 
@@ -4607,7 +4608,9 @@ function validateCourse(value) {
         )
       : [null, null, null];
     out.lessons[key] = {
-      step: Number.isInteger(v.step) && v.step >= 0 && v.step <= 3 ? v.step : 0,
+      step: Number.isInteger(v.step) && v.step >= 0 && v.step <= 4 ? v.step : 0,
+      extra: (() => { try { return cleanExtraProgress(v.extra); } catch { return {}; } })(),
+      extraSelected: isExtraId(v.extraSelected) ? v.extraSelected : null,
       read: Array.isArray(v.read)
         ? [...new Set(v.read.filter((n) => n === 0 || n === 1))]
         : [],
@@ -4642,7 +4645,20 @@ function lessonState(lesson) {
     submitted: false,
     best: 0,
     order: [],
+    extra: {},
+    extraSelected: null,
   });
+}
+function extraState(lesson, exercise) {
+  const s = lessonState(lesson);
+  s.extra ||= {};
+  return (s.extra[exercise.id] ||= { code: exercise.starter || '', passed: false, choice: null, submitted: false });
+}
+function activePractice(lesson) {
+  const s = lessonState(lesson);
+  if (s.step !== 4) return { exercise: lesson.exercise, state: s, extraId: null };
+  const exercise = lesson.extras.find(ex => ex.id === s.extraSelected);
+  return exercise ? { exercise, state: extraState(lesson, exercise), extraId: exercise.id } : null;
 }
 function lessonComplete(lesson) {
   const s = lessonState(lesson);
@@ -4678,6 +4694,7 @@ function mergeCourse(incoming) {
           read: [...new Set([...old.read, ...next.read])],
           passed: old.passed || next.passed,
           best: Math.max(old.best, next.best),
+          extra: mergeExtraProgress({}, next.extra, old.extra),
         }
       : next;
     }
@@ -4721,7 +4738,7 @@ function renderStart() {
   const finished = done === total;
   const percent = Math.round(done / total * 100);
   const lessonIndex = COURSE.lessons.indexOf(last) + 1;
-  const steps = ["Learn the idea", "See it in action", "Practice", "Quiz"];
+  const steps = ["Learn the idea", "See it in action", "Practice", "Quiz", "Extra practice (optional)"];
   const action = finished ? 'data-view="course"' : `data-lesson="${started ? last.id : "first-program"}"`;
 
   return `<div class="welcome-page">
@@ -4837,8 +4854,9 @@ function renderLesson(lesson) {
     index = COURSE.lessons.indexOf(lesson),
     labels = ["Learn the idea", "See it in action", "Practice", "Quiz"];
   return `<div class="lesson-topline"><button class="btn" data-view="course">← Learning path</button><span>Lesson ${index + 1} of ${COURSE.lessons.length} · ~${lesson.minutes} min</span></div><header class="lesson-header"><div class="eyebrow">Unit ${unit.label} · ${escapeHTML(unit.subtitle)}</div><h1 id="lesson-heading" class="course-anchor" tabindex="-1">${escapeHTML(lesson.title)}</h1><p>${escapeHTML(lesson.summary)}</p></header><nav class="lesson-steps" aria-label="Lesson steps">${labels.map((label, i) => `<button class="lesson-step ${lessonStepStatus(s, i) ? "is-done" : ""}" data-step="${i}" ${s.step === i ? 'aria-current="step"' : ""}><span class="step-dot" aria-hidden="true">${lessonStepStatus(s, i) ? "✓" : i + 1}</span>${label}${lessonStepStatus(s, i) ? '<span class="sr-only"> (completed)</span>' : ""}</button>`).join("")}</nav>
+  <div class="extra-nav"><button class="btn ${s.step === 4 ? 'extra-active' : ''}" data-extra-hub ${s.step === 4 ? 'aria-current="page"' : ''}>Extra practice <span>· optional · <span data-extra-count>${extraCount(lesson)}</span>/10 done</span></button></div>
   ${earlierWork(lesson)}
-  ${s.step < 2 ? renderLearn(lesson, s) : s.step === 2 ? renderPractice(lesson, s) : renderQuiz(lesson, s)}
+  ${s.step < 2 ? renderLearn(lesson, s) : s.step === 2 ? renderPractice(lesson, s) : s.step === 3 ? renderQuiz(lesson, s) : renderExtra(lesson, s)}
   <p class="terms"><strong>Swedish connections</strong><br>${escapeHTML(lesson.terms)}</p><p class="source-note lesson-source">Based on the topics in <a href="${unit.source}" target="_blank" rel="noopener noreferrer">${escapeHTML(unit.sourceTitle)} ↗</a>. Explanations, practice checks and quizzes are written for this guide.</p>`;
 }
 function renderLearn(lesson, s) {
@@ -4862,15 +4880,45 @@ function renderLearn(lesson, s) {
     <section class="lesson-understanding" aria-labelledby="understanding-heading"><span class="exercise-label">PAUSE AND THINK</span><h2 id="understanding-heading">Check your understanding</h2><p>${escapeHTML(part.check.prompt)}</p><details><summary>Reveal the answer and reasoning</summary><strong>${escapeHTML(part.check.answer)}</strong><p>${escapeHTML(part.check.why)}</p></details></section>
     <div class="lesson-bottom"><button class="btn" ${s.step === 0 ? 'data-view="course"' : 'data-step="0"'}>← ${s.step === 0 ? 'Learning path' : 'Previous explanation'}</button><span class="subtle">Take your time. Try predicting the output before running it.</span><button class="btn course-primary" data-continue>${s.step === 0 ? 'Continue the explanation' : 'Try it yourself'} →</button></div>`;
 }
-function renderPractice(lesson, s) {
-  const ex = lesson.exercise;
+function renderPractice(lesson, s, ex = lesson.exercise, extra = false) {
   return `<div class="practice-grid"><section class="practice-brief"><div class="exercise-label">${ex.kind === 'code' ? 'YOUR TURN · A NEW SITUATION' : 'YOUR TURN · GIT SIMULATION'}</div><h2>${escapeHTML(ex.title)}</h2><p class="practice-intro">Use the same idea in a different example. Work through these steps in order.</p><ol>${ex.instructions.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ol>
   <aside class="practice-reminder"><strong>Connect it to the lesson</strong><p>${escapeHTML(lesson.steps[1].takeaway)}</p><button class="btn" data-step="0">Review the explanation</button></aside>
   <div class="practice-hints"><h3>Get a little help</h3>${ex.hints.map((hint, i) => `<details class="hint-box"><summary>Hint ${i + 1}${i === 0 ? ' · Where to begin' : i === 1 ? ' · The next step' : ' · Put it together'}</summary><p>${escapeHTML(hint)}</p></details>`).join('')}</div>
   <details class="hint-box"><summary>Worked solution, with reasoning</summary><p>Compare this with your attempt. Reading a solution does not complete the exercise.</p><pre><code>${highlight(ex.solution)}</code></pre><ol>${ex.solutionNotes.map(note => `<li>${escapeHTML(note)}</li>`).join('')}</ol></details>
   ${ex.kind === 'code' ? '<p class="course-storage">Core JavaScript only. No page DOM, network, or terminal access. Each run starts fresh and stops after 3 seconds.</p>' : ''}</section>
   ${ex.kind === "code" ? `<section class="code-workbench" aria-label="Coding practice"><div class="code-tab"><label for="course-editor"><strong>practice.js</strong></label><span>Ctrl / ⌘ + Enter</span></div><textarea id="course-editor" class="course-editor" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Practice JavaScript code" maxlength="60000">${escapeHTML(s.code)}</textarea><div class="course-code-actions"><button class="btn course-primary" id="course-run" data-check>▶ Run & check</button><button class="btn" id="course-stop" data-stop disabled>Stop</button><button class="btn" data-reset-code>Reset code</button><span class="course-save-status" id="course-save-status">${storageOK ? "Saved locally" : "Session only"}</span></div><div class="course-console-label">CONSOLE</div><pre id="course-console" class="course-console" aria-label="Exercise output">Run your code to see the output here.</pre><div id="practice-status" class="practice-status ${s.passed ? "success" : ""}" role="status">${s.passed ? "✓ Practice passed previously. You can keep experimenting." : "Ready when you are. Run your code to check it."}</div><ul class="exercise-checks" id="exercise-checks">${ex.tests.map((t) => `<li>○ ${escapeHTML(t.label)}</li>`).join("")}</ul></section>` : renderOrder(ex, s)}</div>
-  <div class="lesson-bottom"><button class="btn" data-step="1">← Back to the lesson</button><button class="btn course-primary" data-step="3">${s.passed ? "Practice complete · Take the quiz" : "Take the quiz"} →</button></div>`;
+  ${extra ? extraFooter(lesson, ex) : `<div class="lesson-bottom"><button class="btn" data-step="1">← Back to the lesson</button><button class="btn course-primary" data-step="3">${s.passed ? "Practice complete · Take the quiz" : "Take the quiz"} →</button></div>`}`;
+}
+function extraCount(lesson) {
+  const states = lessonState(lesson).extra || {};
+  return lesson.extras.filter(ex => states[ex.id]?.passed).length;
+}
+function nextLessonButton(lesson, primary = false) {
+  const next = COURSE.lessons[COURSE.lessons.indexOf(lesson) + 1];
+  return `<button class="btn ${primary ? 'course-primary' : ''}" ${next ? `data-lesson="${next.id}"` : 'data-view="course"'}>${next ? 'Next lesson' : 'Back to learning path'} →</button>`;
+}
+function extraFooter(lesson, exercise) {
+  const next = lesson.extras[lesson.extras.indexOf(exercise) + 1];
+  return `<div class="lesson-bottom extra-footer"><button class="btn" data-extra-hub>← All 10 exercises</button>${next ? `<button class="btn" data-extra="${next.id}">Try another exercise →</button>` : ''}${nextLessonButton(lesson)}</div>`;
+}
+function renderExtra(lesson, s) {
+  const exercise = lesson.extras.find(ex => ex.id === s.extraSelected);
+  const count = extraCount(lesson);
+  if (!exercise) return `<section class="extra-practice" aria-labelledby="extra-heading">
+    <header class="extra-header"><div><div class="exercise-label">A LITTLE MORE CONFIDENCE · EXTRAÖVNINGAR</div><h2 id="extra-heading">Same idea. New challenges.</h2><p>Choose any of these 10 exercises. Do one, a few, or all of them — this is entirely optional and does not affect lesson completion.</p></div><div class="extra-total"><strong>${count}<span>/10</span></strong><span>extra exercises completed</span></div></header>
+    <div class="extra-toolbar"><p>Your drafts and completed exercises are saved separately. Pick any card to begin or continue.</p>${nextLessonButton(lesson, true)}</div>
+    <div class="extra-grid">${lesson.extras.map((ex, index) => {
+      const saved = s.extra?.[ex.id];
+      const started = saved && (saved.code !== (ex.starter || '') || saved.choice !== null);
+      return `<button class="extra-card ${saved?.passed ? 'is-complete' : ''}" data-extra="${ex.id}"><span class="extra-card-top"><span class="extra-number">${String(index + 1).padStart(2, '0')}</span><span class="extra-card-status">${saved?.passed ? '✓ Completed' : started ? 'Continue draft' : ex.level}</span></span><strong>${escapeHTML(ex.title)}</strong><span class="extra-description">${escapeHTML(ex.instructions[0])}</span><span class="extra-card-action">${saved?.passed ? 'Practice again' : started ? 'Continue exercise' : 'Try this exercise'} <span aria-hidden="true">↗</span></span></button>`;
+    }).join('')}</div><div class="lesson-bottom"><button class="btn" data-step="3">← Back to quiz</button>${nextLessonButton(lesson)}</div></section>`;
+  const state = extraState(lesson, exercise);
+  return `<section class="extra-detail" aria-label="Optional extra exercise"><header class="extra-detail-header"><button class="btn" data-extra-hub>← All 10 exercises</button><span>Optional exercise ${lesson.extras.indexOf(exercise) + 1} of 10 · ${exercise.level}</span><span class="extra-completion" data-extra-completion>${state.passed ? '✓ Completed' : 'Try it at your own pace'}</span></header><p class="extra-note">Extra practice · You can leave for the next lesson whenever you’re ready. Each exercise has its own saved attempt.</p>
+    ${exercise.kind === 'code' ? renderPractice(lesson, state, exercise, true) : renderExtraChoice(lesson, exercise, state)}</section>`;
+}
+function renderExtraChoice(lesson, exercise, state) {
+  const correct = state.choice === exercise.answer;
+  return `<section class="extra-choice"><div class="exercise-label">GIT SCENARIO · NO TERMINAL NEEDED</div><h2>${escapeHTML(exercise.title)}</h2><form id="extra-choice"><fieldset class="quiz-question"><legend>${escapeHTML(exercise.instructions[0])}</legend>${exercise.choices.map((choice, i) => `<label class="quiz-option ${state.submitted && i === exercise.answer ? 'correct' : state.submitted && i === state.choice ? 'incorrect' : ''}"><input type="radio" name="extra-choice" value="${i}" ${state.choice === i ? 'checked' : ''} ${state.submitted ? 'disabled' : ''}><span>${escapeHTML(choice)}</span></label>`).join('')}</fieldset><p id="extra-choice-notice" role="alert"></p>${state.submitted ? `<div class="answer-feedback ${correct ? '' : 'wrong'}" role="status"><strong>${correct ? '✓ Exercise completed' : 'Review the reasoning, then try again'}</strong>${escapeHTML(exercise.reasoning)}</div><button type="button" class="btn" data-retry-extra>Try again</button>` : '<button type="submit" class="btn course-primary">Check answer →</button>'}</form></section>${extraFooter(lesson, exercise)}`;
 }
 function renderOrder(ex, s) {
   return `<section class="code-workbench" style="padding:20px" aria-label="Command order practice"><h3 style="font-size:18px">Choose the next command</h3><div class="order-picks">${ex.commands.map((c, i) => `<button class="btn" data-order="${i}" ${s.order.includes(i) ? "disabled" : ""}>${escapeHTML(c)}</button>`).join("")}</div><div class="order-result" aria-label="Your command order">${s.order.length ? "<ol>" + s.order.map((i) => "<li>" + escapeHTML(ex.commands[i]) + "</li>").join("") + "</ol>" : "Your three commands will appear here."}</div><div class="course-actions"><button class="btn course-primary" data-check-order>Check order</button><button class="btn" data-reset-order>Start over</button></div><p id="practice-status" class="practice-status ${s.passed ? "success" : ""}" role="status">${s.passed ? "✓ You passed this practice." : "Select all three commands, then check your answer."}</p></section>`;
@@ -4880,16 +4928,17 @@ function renderQuiz(lesson, s) {
       (n, q, i) => n + (s.answers[i] === q.answer),
       0,
     ),
-    complete = lessonComplete(lesson),
-    next = COURSE.lessons[COURSE.lessons.indexOf(lesson) + 1];
+    complete = lessonComplete(lesson);
   return `<section><header class="quiz-head"><h2>Let’s see what stuck.</h2><p>Three questions · Get all three right to pass · Unlimited retries</p><p class="subtle">Best score: ${s.best}/3${s.passed ? " · Practice complete" : " · Complete the practice too to finish this lesson."}</p></header><form id="lesson-quiz">${lesson.quiz.map((q, qi) => `<fieldset class="quiz-question"><legend>${qi + 1}. ${escapeHTML(q.prompt)}</legend>${q.choices.map((option, oi) => `<label class="quiz-option ${s.submitted && oi === q.answer ? "correct" : s.submitted && s.answers[qi] === oi ? "incorrect" : ""}"><input type="radio" name="question-${qi}" value="${oi}" ${s.answers[qi] === oi ? "checked" : ""} ${s.submitted ? "disabled" : ""}><span>${escapeHTML(option)}</span>${s.submitted && oi === q.answer ? '<span class="course-answer-label">✓ Correct answer</span>' : ""}</label>`).join("")}${s.submitted ? `<p class="answer-feedback ${s.answers[qi] !== q.answer ? "wrong" : ""}"><strong>${s.answers[qi] === q.answer ? "✓ Correct" : "↺ Review this one"}</strong>${escapeHTML(q.why)}</p>` : ""}</fieldset>`).join("")}<p id="quiz-notice" class="quiz-notice" role="alert"></p>${!s.submitted ? '<button type="submit" class="btn course-primary">Check my answers →</button>' : ""}</form>
-  ${s.submitted ? `<section class="quiz-result" role="status"><h3>${score === 3 ? "✓ Quiz passed" : score + "/3 · Keep going"}${score === 3 ? " · 3/3" : ""}</h3><p>${score === 3 ? (complete ? "Lesson complete. You have read, practiced, and checked your understanding." : !s.passed ? "Your quiz is passed. Finish the practice to complete this lesson." : "Your quiz is passed. Finish both lesson pages using Continue to complete this lesson.") : "Read the explanations above, revisit the lesson if needed, then give it another try. Your best score is saved."}</p><button class="btn" data-retry-quiz>Retry quiz</button> ${!s.passed ? '<button class="btn course-primary" data-step="2">Go to practice →</button>' : s.read.length < 2 ? '<button class="btn course-primary" data-step="0">Review the lesson →</button>' : score === 3 ? `<button class="btn course-primary" ${next ? `data-lesson="${next.id}"` : 'data-view="course"'}>${next ? "Next lesson" : "View course completion"} →</button>` : ""}</section>` : ""}
+  ${s.submitted ? `<section class="quiz-result" role="status"><h3>${score === 3 ? "✓ Quiz passed" : score + "/3 · Keep going"}${score === 3 ? " · 3/3" : ""}</h3><p>${score === 3 ? (complete ? "Lesson complete. You have read, practiced, and checked your understanding." : !s.passed ? "Your quiz is passed. Finish the practice to complete this lesson." : "Your quiz is passed. Finish both lesson pages using Continue to complete this lesson.") : "Read the explanations above, revisit the lesson if needed, then give it another try. Your best score is saved."}</p><button class="btn" data-retry-quiz>Retry quiz</button> ${!s.passed ? '<button class="btn course-primary" data-step="2">Go to practice →</button>' : s.read.length < 2 ? '<button class="btn course-primary" data-step="0">Review the lesson →</button>' : ""}</section>` : ""}
+  ${complete ? `<aside class="extra-invitation"><div><strong>Lesson complete. What would you like to do next?</strong><p>Move on when you’re ready, or build confidence with 10 optional exercises. You don’t need to finish them all.</p></div><div class="course-actions">${nextLessonButton(lesson, true)}<button class="btn" data-extra-hub>Practice more · 10 exercises</button></div></aside>` : ""}
   <div class="lesson-bottom"><button class="btn" data-step="2">← Back to practice</button><button class="btn" data-view="course">Learning path</button></div></section>`;
 }
 function changeLessonStep(step) {
   const lesson = activeLesson();
   if (!lesson) return;
   stopCourseRun();
+  courseUndoCode = null;
   lessonState(lesson).step = step;
   persist();
   render();
@@ -5033,11 +5082,12 @@ const COURSE_RUNNER_HTML =
   ")();<\/script>";
 function runCourseCode() {
   const lesson = activeLesson();
-  if (!lesson || lesson.exercise.kind !== "code") return;
+  const practice = lesson && activePractice(lesson);
+  if (!practice || practice.exercise.kind !== "code") return;
   const editor = document.getElementById("course-editor");
   if (!editor) return;
   stopCourseRun();
-  const s = lessonState(lesson);
+  const { state: s, exercise, extraId } = practice;
   s.code = editor.value;
   persist();
   const output = document.getElementById("course-console");
@@ -5048,7 +5098,7 @@ function runCourseCode() {
   document.getElementById("practice-status").classList.remove("success");
   document.getElementById("course-run").disabled = true;
   document.getElementById("course-stop").disabled = false;
-  document.getElementById("exercise-checks").innerHTML = lesson.exercise.tests
+  document.getElementById("exercise-checks").innerHTML = exercise.tests
     .map((t) => "<li>○ " + escapeHTML(t.label) + "</li>")
     .join("");
   const frame = document.createElement("iframe");
@@ -5059,6 +5109,8 @@ function runCourseCode() {
     frame,
     token: Date.now() + "-" + Math.random(),
     lesson,
+    exercise,
+    extraId,
     code: s.code,
   };
   frame.srcdoc = COURSE_RUNNER_HTML;
@@ -5086,7 +5138,7 @@ window.addEventListener("message", (event) => {
         type: "run",
         token: run.token,
         code: run.code,
-        tests: run.lesson.exercise.tests,
+        tests: run.exercise.tests,
       },
       "*",
     );
@@ -5113,7 +5165,7 @@ window.addEventListener("message", (event) => {
   }
   if (data.type === "results") {
     const results = Array.isArray(data.results) ? data.results : [],
-      tests = run.lesson.exercise.tests;
+      tests = run.exercise.tests;
     const passed = tests.every((_, i) =>
       results.some((r) => r.index === i && r.pass === true),
     );
@@ -5126,13 +5178,18 @@ window.addEventListener("message", (event) => {
     if (!output.textContent)
       output.textContent = "Finished with no console output.";
     if (passed) {
-      lessonState(run.lesson).passed = true;
+      const state = run.extraId ? extraState(run.lesson, run.exercise) : lessonState(run.lesson);
+      state.passed = true;
       persist();
-      showPracticePassed();
+      if (run.extraId) {
+        document.querySelectorAll('[data-extra-count]').forEach(el => { el.textContent = extraCount(run.lesson); });
+        const completed = document.querySelector('[data-extra-completion]');
+        if (completed) completed.textContent = '✓ Completed';
+      } else showPracticePassed();
     }
     stopCourseRun(
       passed
-        ? "✓ All checks passed. You’re ready for the quiz."
+        ? run.extraId ? "✓ Extra exercise completed. Try another, or continue to the next lesson whenever you’re ready." : "✓ All checks passed. You’re ready for the quiz."
         : "Some checks need another look. Use the hints and try again.",
     );
     document
@@ -5154,6 +5211,7 @@ document.addEventListener("click", (event) => {
   }
   if (button.dataset.lesson) {
     stopCourseRun();
+    courseUndoCode = null;
     progress.course.last = button.dataset.lesson;
     persist();
     navigate("lesson-" + button.dataset.lesson);
@@ -5163,6 +5221,23 @@ document.addEventListener("click", (event) => {
   const lesson = activeLesson();
   if (!lesson) return;
   const s = lessonState(lesson);
+  if (button.hasAttribute('data-extra-hub') || button.hasAttribute('data-extra')) {
+    const id = button.dataset.extra;
+    if (id && !lesson.extras.some(ex => ex.id === id)) return;
+    s.extraSelected = id || null;
+    changeLessonStep(4);
+    return;
+  }
+  if (button.hasAttribute('data-retry-extra')) {
+    const practice = activePractice(lesson);
+    if (!practice?.extraId) return;
+    practice.state.choice = null;
+    practice.state.submitted = false;
+    persist();
+    render();
+    document.querySelector('#extra-choice input')?.focus();
+    return;
+  }
   if (button.hasAttribute('data-run-lesson-example')) {
     const part = lesson.steps[Number(button.dataset.runLessonExample)];
     if (part?.language === 'javascript') openRunner({ title: part.title, code: part.code });
@@ -5187,19 +5262,22 @@ document.addEventListener("click", (event) => {
   }
   if (button.hasAttribute("data-reset-code")) {
     stopCourseRun();
+    const practice = activePractice(lesson);
+    if (!practice) return;
+    const draft = practice.state;
     const editor = document.getElementById("course-editor");
     const undoing = button.dataset.undo === "true";
     if (undoing) {
-      editor.value = courseUndoCode ?? s.code;
+      editor.value = courseUndoCode ?? draft.code;
       button.textContent = "Reset code";
       delete button.dataset.undo;
     } else {
       courseUndoCode = editor.value;
-      editor.value = lesson.exercise.starter;
+      editor.value = practice.exercise.starter;
       button.textContent = "Undo reset";
       button.dataset.undo = "true";
     }
-    s.code = editor.value;
+    draft.code = editor.value;
     persist();
     document.getElementById("practice-status").textContent = undoing
       ? "Your previous code was restored."
@@ -5248,7 +5326,9 @@ document.addEventListener("input", (event) => {
   if (event.target.id !== "course-editor") return;
   const lesson = activeLesson();
   if (!lesson) return;
-  lessonState(lesson).code = event.target.value;
+  const practice = activePractice(lesson);
+  if (!practice) return;
+  practice.state.code = event.target.value;
   // Capture every keystroke locally; cloud writes are debounced in progress-sync.js.
   persist();
   const label = document.getElementById("course-save-status");
@@ -5262,6 +5342,14 @@ document.addEventListener("input", (event) => {
   }, 250);
 });
 document.addEventListener("change", (event) => {
+  if (event.target.matches('#extra-choice input[type="radio"]')) {
+    const lesson = activeLesson();
+    const practice = lesson && activePractice(lesson);
+    if (!practice?.extraId || practice.state.submitted) return;
+    practice.state.choice = Number(event.target.value);
+    persist();
+    return;
+  }
   if (!event.target.matches('#lesson-quiz input[type="radio"]')) return;
   const lesson = activeLesson();
   if (!lesson) return;
@@ -5272,6 +5360,23 @@ document.addEventListener("change", (event) => {
   persist();
 });
 document.addEventListener("submit", (event) => {
+  if (event.target.id === 'extra-choice') {
+    event.preventDefault();
+    const lesson = activeLesson();
+    const practice = lesson && activePractice(lesson);
+    if (!practice?.extraId || practice.state.submitted) return;
+    if (practice.state.choice === null) {
+      document.getElementById('extra-choice-notice').textContent = 'Choose an answer before checking.';
+      document.querySelector('#extra-choice input')?.focus();
+      return;
+    }
+    practice.state.submitted = true;
+    practice.state.passed ||= practice.state.choice === practice.exercise.answer;
+    persist();
+    render();
+    document.querySelector('[data-retry-extra]')?.focus();
+    return;
+  }
   if (event.target.id !== "lesson-quiz") return;
   event.preventDefault();
   const lesson = activeLesson(),

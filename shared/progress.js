@@ -19,6 +19,21 @@ function ids(value) {
   return [...new Set(value)];
 }
 
+export const isExtraId = value => typeof value === 'string' && /^p(0[1-9]|10)$/.test(value);
+export function cleanExtraProgress(value = {}) {
+  requireValue(object(value) && Object.keys(value).length <= 10);
+  const out = {};
+  for (const [key, state] of Object.entries(value)) {
+    requireValue(isExtraId(key) && object(state)
+      && typeof state.code === 'string' && state.code.length <= 60000
+      && typeof state.passed === 'boolean' && typeof state.submitted === 'boolean'
+      && (state.choice === null || integer(state.choice, 9)));
+    out[key] = { code: state.code, passed: state.passed, choice: state.choice,
+      submitted: state.submitted && state.choice !== null };
+  }
+  return out;
+}
+
 // Reject malformed/oversized input and copy only recognized fields to storage.
 export function cleanProgress(value) {
   requireValue(object(value) && value.version === 1);
@@ -35,7 +50,7 @@ export function cleanProgress(value) {
   requireValue(entries.length <= 64);
   out.course.last = course.last;
   for (const [key, l] of entries) {
-    requireValue(id(key) && object(l) && integer(l.step, 3)
+    requireValue(id(key) && object(l) && integer(l.step, 4)
       && Array.isArray(l.read) && l.read.length <= 2 && l.read.every(n => integer(n, 1))
       && typeof l.code === 'string' && l.code.length <= 60000
       && typeof l.passed === 'boolean' && integer(l.best, 3)
@@ -43,10 +58,12 @@ export function cleanProgress(value) {
       && l.answers.every(n => n === null || integer(n, 9))
       && typeof l.submitted === 'boolean'
       && Array.isArray(l.order) && l.order.length <= 3 && l.order.every(n => integer(n, 2)));
+    requireValue(l.extraSelected == null || isExtraId(l.extraSelected));
     out.course.lessons[key] = {
       step: l.step, read: [...new Set(l.read)], code: l.code, passed: l.passed,
       answers: [...l.answers], submitted: l.submitted && l.answers.every(n => n !== null),
       best: l.best, order: [...new Set(l.order)],
+      extra: cleanExtraProgress(l.extra), extraSelected: l.extraSelected ?? null,
     };
   }
   return out;
@@ -59,6 +76,22 @@ function mergeSet(base = [], local = [], remote = []) {
 }
 function pick(base, local, remote) {
   return copy(equal(local, base) ? remote : local);
+}
+
+// Merge each optional exercise separately, even when two devices work on the
+// same lesson. A newly earned completion survives a concurrent draft edit.
+export function mergeExtraProgress(base = {}, local = {}, remote = {}) {
+  const out = copy(remote);
+  for (const key of new Set([...Object.keys(base), ...Object.keys(local)])) {
+    const b = base[key], l = local[key], r = remote[key];
+    if (equal(b, l)) continue;
+    if (!l) { delete out[key]; continue; }
+    if (!r) { out[key] = copy(l); continue; }
+    const choice = state => state ? { choice: state.choice, submitted: state.submitted } : undefined;
+    out[key] = { code: pick(b?.code, l.code, r.code),
+      ...pick(choice(b), choice(l), choice(r)), passed: l.passed || r.passed };
+  }
+  return out;
 }
 
 // Three-way merge: only this device's edits override the latest cloud snapshot.
@@ -78,7 +111,8 @@ export function mergeProgress(base, local, remote) {
     if (!l) { delete out.course.lessons[key]; continue; }
     if (!r || equal(b, r)) { out.course.lessons[key] = copy(l); continue; }
     const result = copy(r);
-    for (const field of ['step', 'code', 'order']) result[field] = pick(b?.[field], l[field], r[field]);
+    for (const field of ['step', 'code', 'order', 'extraSelected']) result[field] = pick(b?.[field], l[field], r[field]);
+    result.extra = mergeExtraProgress(b?.extra, l.extra, r.extra);
     const quiz = v => v ? { answers: v.answers, submitted: v.submitted } : undefined;
     Object.assign(result, pick(quiz(b), quiz(l), quiz(r)));
     result.read = mergeSet(b?.read, l.read, r.read);
