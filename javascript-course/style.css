@@ -184,6 +184,9 @@ code.inline {
 }
 .brand {
   display: flex;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 12px;
   gap: 12px;
   align-items: center;
   margin: 0 12px 28px;
@@ -202,6 +205,9 @@ code.inline {
 }
 .brand strong {
   font-size: 19px;
+}
+.brand:hover strong {
+  text-decoration: underline;
 }
 .brand small {
   display: block;

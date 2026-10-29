@@ -6393,6 +6393,11 @@ document.addEventListener("change", (e) => {
 $("#menu-button").onclick = () =>
   setMenu(!document.body.classList.contains("nav-open"));
 $("#shade").onclick = () => setMenu(false);
+$("#home-link").addEventListener("click", (event) => {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  navigate("course");
+});
 $("#playground-button").onclick = () => openRunner();
 $("#settings-button").onclick = () => {
   $("#settings-dialog").showModal();
