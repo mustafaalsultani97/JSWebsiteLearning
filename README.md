@@ -9,6 +9,28 @@ The JS logo and Home button return here. Learning path (`#course`) lists every
 lesson; Reference desk (`#home`) keeps its existing address. Returning to Home
 preserves the current lesson and step, including after account progress loads.
 
+## How the lessons teach
+
+All 21 course lessons use newly authored examples and practice situations while
+keeping the topics and learning order from the four class websites. Each lesson
+has goals and prerequisites, two detailed explanation pages, runnable examples
+where appropriate, expected output, a line-by-line walkthrough, common mistakes,
+and a prediction question with reasoning. Practice includes an ordered task,
+three progressive hints, an explained solution, and automatic checks. Three new
+quiz questions finish the lesson with explanations for every answer.
+
+When adding material from another class website, keep its learning objectives,
+but write fresh scenarios, data and exercises. Explain the concept and each new
+piece of syntax before asking the learner to use it. A renamed school example
+alone is not a new exercise. Use the files in `javascript-course/lessons/` as the
+content template; keep the English explanations and key Swedish terms.
+
+The expanded course has separate `-v2` progress records. Earlier lesson drafts,
+reading marks and quiz results are retained under their existing keys and can be
+viewed in **Your earlier work** inside each lesson. Old quiz choices are never
+displayed as answers to different new questions. The current progress indicator
+counts the new exercises. Both versions are included in account sync and backups.
+
 ## Accounts and saved progress
 
 Visitors can study as guests or create an email/password account. Accounts save the
@@ -74,7 +96,8 @@ storage require the Netlify deployment. Press Ctrl+C to stop the preview.
 | --- | --- |
 | `javascript-course/index.html` | Page structure, toolbar and account forms |
 | `javascript-course/style.css` | Colors, spacing, layout and mobile styles |
-| `javascript-course/script.js` | Lesson content, quizzes, exercises and navigation |
+| `javascript-course/script.js` | Navigation, lesson screens, code runners and progress |
+| `javascript-course/lessons/` | Teaching text, examples, practice tasks, hints, solutions and quizzes, grouped into four topic files |
 | `javascript-course/accounts.js` | Sign-in, signup, sign-out, recovery and account UI |
 | `javascript-course/progress-sync.js` | Browser backup, retry, and cloud synchronization |
 | `shared/progress.js` | Data validation and merging changes from different devices |
@@ -83,6 +106,9 @@ storage require the Netlify deployment. Press Ctrl+C to stop the preview.
 | `scripts/build.mjs` | Bundles JavaScript and copies the page and styles to `dist/` |
 
 Edit source files, then rebuild. Do not edit the generated `dist/` files directly.
+`npm test` executes every JavaScript teaching example and every worked practice
+solution, checks that the starter still requires learner work, and verifies that
+both course versions fit the account progress schema.
 The build keeps HTML, CSS and JavaScript separate. The JavaScript bundle is readable
 and includes the account SDK, so there are no runtime CDN dependencies.
 

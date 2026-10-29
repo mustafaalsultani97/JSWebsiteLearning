@@ -1372,6 +1372,60 @@ body.start-mode > .shell .footer { display: none; }
   .welcome-example > pre { font-size: 12px; padding-inline: 16px; }
 }
 
+/* Expanded lesson explanations and worked examples. */
+.lesson-goals { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; margin: 24px 0; padding: 22px 26px; border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 12px 12px 0; }
+.lesson-goals h2 { font-size: 18px; margin-bottom: 8px; }
+.lesson-goals ul { margin: 0; padding-left: 20px; font-size: 15px; color: var(--muted); }
+.lesson-goals > p { font-size: 14px; color: var(--muted); }
+.lesson-goals > p strong { display: block; color: var(--text); margin-bottom: 8px; }
+.lesson-reading-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 28px; align-items: start; }
+.lesson-reading-grid .lesson-explanation { padding: 24px; }
+.lesson-reading-grid .lesson-explanation h2 { font-size: 25px; line-height: 1.35; }
+.lesson-reading-grid .lesson-explanation p { font-size: 17px; line-height: 1.85; margin: 18px 0; }
+.lesson-reading-grid .lesson-explanation .exercise-label { margin-bottom: 14px; }
+.lesson-demonstration { min-width: 0; }
+.lesson-demonstration .lesson-example { margin-top: 0; }
+.lesson-demonstration > h3 { font-size: 20px; margin: 26px 0 14px; }
+.lesson-demonstration > .btn { white-space: normal; text-align: left; font-size: 13px; margin-top: 12px; }
+.lesson-expected { padding: 16px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-top: 12px; }
+.lesson-expected > strong { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.lesson-expected pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--mint); font: 14px/1.8 Consolas, monospace; margin-top: 8px; }
+.lesson-walkthrough { list-style: none; counter-reset: walkthrough; padding: 0; margin: 0; }
+.lesson-walkthrough li { counter-increment: walkthrough; position: relative; padding: 16px 0 16px 36px; border-top: 1px solid var(--line); }
+.lesson-walkthrough li::before { content: counter(walkthrough); position: absolute; left: 0; top: 18px; color: var(--accent); font: 700 13px Consolas, monospace; }
+.lesson-walkthrough code { display: block; color: var(--text); font-size: 13px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.lesson-walkthrough p { color: var(--muted); font-size: 15px; line-height: 1.75; margin-top: 8px; }
+.lesson-mistake { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 20px; }
+.lesson-mistake > strong { color: var(--gold); font-size: 15px; }
+.lesson-explanation .lesson-mistake p { font-size: 15px; margin: 8px 0 0; }
+.lesson-understanding { padding: 24px 28px; margin-top: 28px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.lesson-understanding h2 { font-size: 23px; margin: 10px 0; }
+.lesson-understanding > p { font-size: 17px; }
+.lesson-understanding details { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+.lesson-understanding summary { color: var(--accent); cursor: pointer; font-weight: 700; font-size: 15px; }
+.lesson-understanding details > strong { display: block; margin-top: 16px; }
+.lesson-understanding details > p { font-size: 15px; color: var(--muted); margin-top: 8px; }
+.practice-intro { color: var(--muted); font-size: 15px; margin: 14px 0; }
+.practice-reminder { border-left: 3px solid var(--accent); padding: 15px 18px; margin: 24px 0; background: var(--panel); }
+.practice-reminder > strong { font-size: 15px; }
+.practice-reminder p { font-size: 14px; color: var(--muted); margin: 8px 0 12px; }
+.practice-reminder .btn { font-size: 13px; }
+.practice-hints h3 { font-size: 17px; margin: 22px 0 12px; }
+.course-update, .earlier-work { padding: 18px 22px; margin: 24px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.course-update > strong, .earlier-work > summary { font-size: 15px; color: var(--accent); }
+.earlier-work > summary { cursor: pointer; font-weight: 700; }
+.course-update p, .earlier-work p { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.earlier-work h3 { font-size: 16px; margin: 18px 0 10px; }
+.earlier-work pre { max-height: 360px; overflow: auto; font: 13px/1.7 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 1100px) {
+  .lesson-reading-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .lesson-goals { grid-template-columns: 1fr; gap: 18px; padding: 18px; }
+  .lesson-reading-grid .lesson-explanation { padding: 20px; }
+  .lesson-understanding { padding: 20px; }
+}
+
 /* 6. Guided course: dashboard, lessons, code editor and quizzes */
 .course-nav {
   border-color: var(--line);
