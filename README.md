@@ -20,6 +20,11 @@ again. Signing out returns to guest progress and does not erase the account cach
 
 ## One-time setup for this Netlify website
 
+The production site was configured on 29 October 2026: Identity is enabled,
+public registration is open, email confirmation is required, and the progress
+store passed a cloud write/read check. Use `npm run check:live` to check its current
+status. The steps below also describe how to set up another deployment.
+
 1. Commit these files to the GitHub repository connected to
    **javasscripcoursefree.netlify.app**. Keep `package.json`, `netlify.toml`,
    `javascript-course/`, `shared/`, `server/`, and `netlify/` at the repository root.
@@ -77,6 +82,19 @@ and includes the account SDK, so there are no runtime CDN dependencies.
 
 ## Storage and access
 
+The account backend has two persistent stores on Netlify:
+
+| Information | Storage |
+| --- | --- |
+| Learner IDs, email addresses, names and authentication credentials | Netlify Identity's managed user store |
+| Lessons, code drafts, quiz results, bookmarks and reading settings | The private `course-progress` Netlify Blobs store |
+
+Identity creates each learner's user record at sign-up. The progress API creates
+their progress record on the first save. These records persist across website
+deployments. GitHub contains the application code and data rules; learner records
+are held by the hosting services. No separate SQL database setup is required for
+this version of the course.
+
 Netlify Identity handles passwords, email confirmation and password recovery.
 The progress API accepts only authenticated requests and derives the storage key
 from the verified user's ID. An account header guards against another tab switching
@@ -89,6 +107,12 @@ achievements; for conflicting edits to the same draft or quiz attempt, the devic
 retrying the save wins. Existing progress backup download/restore still works.
 
 ## Tests
+
+Run `npm run check:live` to check the published account forms, JavaScript bundle,
+public registration service and authentication requirement on the progress API.
+It prints the specific missing setup step if accounts are not ready. This is a
+read-only check; it does not register users, send email or write progress. To check
+another deployment, run `npm run check:live -- https://your-site.netlify.app`.
 
 `npm test` checks access isolation, invalid/oversized requests, conditional writes,
 concurrent devices, offline recovery, account switching, and edits made while a save
