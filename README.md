@@ -3,6 +3,12 @@
 21 lessons, coding exercises, 63 quiz questions, and a searchable reference library.
 Lessons are in English with key Swedish terms.
 
+The website opens on **Home** (`#start`), with a course introduction, a runnable
+example, a four-unit overview, and a Start learning or Continue learning button.
+The JS logo and Home button return here. Learning path (`#course`) lists every
+lesson; Reference desk (`#home`) keeps its existing address. Returning to Home
+preserves the current lesson and step, including after account progress loads.
+
 ## Accounts and saved progress
 
 Visitors can study as guests or create an email/password account. Accounts save the

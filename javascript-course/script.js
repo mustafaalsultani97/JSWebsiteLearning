@@ -5932,7 +5932,7 @@ function cardHTML(card) {
     runnable = card.mode === "run" || card.mode === "modern";
   return `<article class="topic-card${done ? " card-complete" : ""}" data-card="${card.id}"><div class="card-meta"><span class="level">${escapeHTML(card.level)}</span><span class="mode-label${card.mode === "run" ? "" : " read"}">${modes[card.mode] || "Reference"}</span><button class="icon-btn save-button" data-save="${card.id}" aria-pressed="${saved}" aria-label="${saved ? "Remove bookmark for" : "Bookmark"} ${escapeHTML(card.title)}">${bookIcon}</button></div><details><summary><span class="card-title">${escapeHTML(card.title)}<span class="plus" aria-hidden="true">+</span></span><span class="card-summary">${escapeHTML(card.summary)}</span></summary><div class="card-body">${card.explanation.map((p) => "<p>" + escapeHTML(p) + "</p>").join("")}${card.mode !== "run" ? '<div class="env-note">' + escapeHTML(modeNotes[card.mode] || modeNotes.read) + "</div>" : ""}<div class="codebox"><div class="code-toolbar"><span>${card.mode === "node" ? "Node.js" : card.mode === "module" ? "Module example" : "JavaScript"}</span><button data-copy="${card.id}" aria-label="Copy example for ${escapeHTML(card.title)}">Copy code</button></div><pre class="code"><code>${highlight(card.code)}</code></pre></div>${card.output ? '<div class="output-example">Expected result<pre>' + escapeHTML(card.output) + "</pre></div>" : ""}${card.pitfall ? '<div class="tip"><strong>Keep in mind</strong>' + escapeHTML(card.pitfall) + "</div>" : ""}<div class="card-actions">${runnable ? '<button class="btn primary" data-run="' + card.id + '">Try this example</button>' : ""}<a class="btn" href="${escapeHTML(card.source)}" target="_blank" rel="noopener noreferrer">Reference ↗</a></div><label class="done-control"><input type="checkbox" data-done="${card.id}" ${done ? "checked" : ""}>I have studied this topic</label></div></details></article>`;
 }
-let currentView = "course",
+let currentView = "start",
   query = "",
   level = "all",
   completion = "all";
@@ -6000,6 +6000,7 @@ function render() {
   const view = $("#view");
   const showCourse = isCourseView() && !query;
   document.body.classList.toggle("course-mode", showCourse);
+  document.body.classList.toggle("start-mode", currentView === "start" && !query);
   updateCourseBadge();
   document.querySelectorAll("[data-view]").forEach((b) => {
     if (
@@ -6010,6 +6011,10 @@ function render() {
       b.setAttribute("aria-current", "page");
     else b.removeAttribute("aria-current");
   });
+  if (currentView === "start" && !query) {
+    view.innerHTML = renderStart();
+    return;
+  }
   if (showCourse) {
     view.innerHTML =
       currentView === "course"
@@ -6134,7 +6139,7 @@ function navigate(id, hash = true) {
   stopCourseRun();
   clearTimeout(courseDraftTimer);
   persist();
-  currentView = validView(id) ? id : "course";
+  currentView = validView(id) ? id : "start";
   if (currentView.startsWith("lesson-")) {
     progress.course.last = currentView.slice(7);
     persist();
@@ -6152,6 +6157,7 @@ function navigate(id, hash = true) {
     }
   }
   render();
+  if (currentView === "start") $("#welcome-heading")?.focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 let searchTimer;
@@ -6396,9 +6402,7 @@ $("#shade").onclick = () => setMenu(false);
 $("#home-link").addEventListener("click", (event) => {
   if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  lessonState(COURSE.lessons[0]).step = 0;
-  navigate("lesson-first-program");
-  focusLesson();
+  navigate("start");
 });
 $("#playground-button").onclick = () => openRunner();
 $("#settings-button").onclick = () => {
@@ -6469,13 +6473,13 @@ function readHash() {
   try {
     return decodeURIComponent(location.hash.slice(1));
   } catch {
-    return "home";
+    return "start";
   }
 }
 window.addEventListener("hashchange", () => {
   const id = readHash();
   if (id === "main") return;
-  navigate(validView(id) ? id : "course", false);
+  navigate(validView(id) ? id : "start", false);
 });
 /* 8. COURSE PROGRESS — load, validate and merge lesson achievements. */
 // Course state lives in the same backup as the original reference progress.
@@ -6563,7 +6567,7 @@ function mergeCourse(incoming) {
 function validView(id) {
   return (
     DATA.some((s) => s.id === id) ||
-    ["course", "home", "saved", "all"].includes(id) ||
+    ["start", "course", "home", "saved", "all"].includes(id) ||
     COURSE.lessons.some((l) => "lesson-" + l.id === id)
   );
 }
@@ -6577,7 +6581,93 @@ function updateCourseBadge() {
 function isCourseView() {
   return currentView === "course" || !!activeLesson();
 }
-/* 9. COURSE DISPLAY — dashboard, reading pages, exercises and quizzes. */
+/* 9. COURSE DISPLAY — welcome page, dashboard, lessons, exercises and quizzes. */
+const welcomeExample = {
+  title: "Your first JavaScript program",
+  code: 'const message = "Hello, JavaScript!";\nconsole.log(message);\nconsole.log(7 + 5);',
+};
+
+// The home page introduces the course. Learning path still lists every lesson.
+function renderStart() {
+  const total = COURSE.lessons.length;
+  const done = courseCount();
+  const last = COURSE.lessons.find((lesson) => lesson.id === progress.course.last) || COURSE.lessons[0];
+  const started = last.id !== "first-program" || COURSE.lessons.some((lesson) => {
+    const state = lessonState(lesson);
+    return state.step > 0 || state.read.length > 0 || state.passed || state.best > 0 ||
+      state.answers.some((answer) => answer !== null) || state.code !== (lesson.exercise.starter || "");
+  });
+  const finished = done === total;
+  const percent = Math.round(done / total * 100);
+  const lessonIndex = COURSE.lessons.indexOf(last) + 1;
+  const steps = ["Learn the idea", "See it in action", "Practice", "Quiz"];
+  const action = finished ? 'data-view="course"' : `data-lesson="${started ? last.id : "first-program"}"`;
+
+  return `<div class="welcome-page">
+    <section class="welcome-hero" aria-labelledby="welcome-heading">
+      <div class="welcome-intro">
+        <div class="welcome-kicker"><span aria-hidden="true">JS</span> A free course. A fresh start.</div>
+        <h1 id="welcome-heading" tabindex="-1">Your first<br>JavaScript program<span class="welcome-accent"> starts here.</span></h1>
+        <p class="welcome-lead">Go from “where do I begin?” to code you understand. Learn one idea, try it yourself, then put it to the test.</p>
+        <div class="course-actions">
+          <button class="btn course-primary" ${action}>${finished ? "Revisit the course" : started ? "Continue learning" : "Start learning"} <span aria-hidden="true">→</span></button>
+          <button class="btn" data-view="course">Explore the course</button>
+        </div>
+        <p class="welcome-note">No experience needed · Learn at your own pace</p>
+      </div>
+      <div class="welcome-example" aria-label="A first JavaScript example">
+        <div class="welcome-editor-bar"><span><span class="welcome-file-icon" aria-hidden="true">JS</span> hello.js</span><span>YOUR FIRST FEW LINES</span></div>
+        <pre><code>${highlight(welcomeExample.code)}</code></pre>
+        <div class="welcome-output"><span>EXPECTED OUTPUT</span><pre>Hello, JavaScript!\n12</pre></div>
+        <button class="welcome-try" data-welcome-example>Try this code <span aria-hidden="true">↗</span></button>
+        <p>Change a word. Run it. See what happens.</p>
+      </div>
+    </section>
+
+    <div class="welcome-facts" aria-label="What is included">
+      <div><strong>${total}</strong><span>guided lessons</span></div>
+      <div><strong>${total}</strong><span>practice activities</span></div>
+      <div><strong>${COURSE.lessons.reduce((count, lesson) => count + lesson.quiz.length, 0)}</strong><span>quiz questions</span></div>
+      <div><strong>EN + SV</strong><span>English with Swedish terms</span></div>
+    </div>
+
+    ${started ? `<section class="welcome-resume" aria-label="Your saved progress">
+      <div><span class="welcome-label">${finished ? "LOOK HOW FAR YOU’VE COME" : "PICK UP WHERE YOU LEFT OFF"}</span>
+        <h2>${finished ? `All ${total} lessons complete.` : escapeHTML(last.title)}</h2>
+        <p>${finished ? "Revisit an exercise or try something new in the playground." : `Lesson ${lessonIndex} of ${total} · ${steps[lessonState(last).step]}`}</p></div>
+      <div class="welcome-progress"><strong>${done} / ${total} <span>complete</span></strong>
+        <div class="progress-track" role="progressbar" aria-label="Completed lessons" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><div style="width:${percent}%"></div></div></div>
+    </section>` : ""}
+
+    <section class="welcome-method" aria-labelledby="welcome-method-heading">
+      <div class="welcome-section-heading"><div><span class="welcome-label">A LITTLE PRACTICE, EVERY STEP</span><h2 id="welcome-method-heading">Learn it. Write it. Make it stick.</h2></div><p>You do more than read. Every lesson gives you a chance to use what you just learned.</p></div>
+      <ol class="welcome-steps">
+        <li><span aria-hidden="true">01</span><h3>Get the idea</h3><p>Short explanations and worked examples make each new concept easier to follow.</p></li>
+        <li><span aria-hidden="true">02</span><h3>Make something work</h3><p>Write code in your browser. Use hints and checks to understand what to try next.</p></li>
+        <li><span aria-hidden="true">03</span><h3>Check what you know</h3><p>Finish with a three-question quiz. Get an explanation for every answer and retry anytime.</p></li>
+      </ol>
+    </section>
+
+    <section class="welcome-curriculum" aria-labelledby="welcome-curriculum-heading">
+      <div class="welcome-section-heading"><div><span class="welcome-label">YOUR LEARNING PATH</span><h2 id="welcome-curriculum-heading">Start small. Build on it.</h2></div><button class="btn" data-view="course">See all ${total} lessons <span aria-hidden="true">→</span></button></div>
+      <div class="welcome-units">${COURSE.modules.map((unit, index) => {
+        const lessons = COURSE.lessons.filter((lesson) => lesson.module === index);
+        return `<button class="welcome-unit" data-lesson="${lessons[0].id}">
+          <span class="welcome-unit-top"><span>UNIT ${unit.label}</span><span>${lessons.length} lessons</span></span>
+          <strong>${escapeHTML(unit.title)}</strong><span class="welcome-unit-description">${escapeHTML(unit.subtitle)}</span>
+          <span class="welcome-unit-bottom">Explore this unit <span aria-hidden="true">↗</span></span>
+        </button>`;
+      }).join("")}</div>
+    </section>
+
+    <section class="welcome-save" aria-labelledby="welcome-save-heading">
+      <div><span class="welcome-label">KEEP YOUR MOMENTUM</span><h2 id="welcome-save-heading">Your progress, wherever you learn.</h2><p>Start as a guest, or sign in to save your lessons, code and quiz results across devices.</p></div>
+      <button class="btn course-primary" data-welcome-account>${accounts?.signedIn ? "My account" : "Sign in / Create account"} <span aria-hidden="true">→</span></button>
+    </section>
+    <footer class="welcome-footer"><span>Made for learning, one small step at a time.</span><button class="btn" data-view="home">Explore the reference library <span aria-hidden="true">↗</span></button></footer>
+  </div>`;
+}
+
 function courseDashboard() {
   const done = courseCount(),
     total = COURSE.lessons.length,
@@ -6909,6 +6999,14 @@ window.addEventListener("message", (event) => {
 document.addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) return;
+  if (button.hasAttribute("data-welcome-example")) {
+    openRunner(welcomeExample);
+    return;
+  }
+  if (button.hasAttribute("data-welcome-account")) {
+    $("#account-button").click();
+    return;
+  }
   if (button.dataset.lesson) {
     stopCourseRun();
     progress.course.last = button.dataset.lesson;
@@ -7071,7 +7169,7 @@ window.addEventListener("pagehide", () => {
 applySettings();
 updateProgress();
 const initial = readHash();
-navigate(validView(initial) ? initial : "course", false);
+navigate(validView(initial) ? initial : "start", false);
 accounts = createAccounts({
   getProgress: () => validateProgress(progress),
   getGuest(onlyMeaningful = false) {
@@ -7100,7 +7198,7 @@ accounts = createAccounts({
     applySettings();
     updateProgress();
     updateCourseBadge();
-    if (resume) navigate('lesson-' + progress.course.last);
+    if (resume && currentView !== 'start') navigate('lesson-' + progress.course.last);
     else render();
     if (editorFocused && $('#course-editor')) {
       $('#course-editor').focus();
