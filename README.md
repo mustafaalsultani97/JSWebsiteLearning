@@ -69,7 +69,7 @@ storage require the Netlify deployment. Press Ctrl+C to stop the preview.
 | `shared/progress.js` | Data validation and merging changes from different devices |
 | `netlify/functions/progress.mjs` | The private progress API entry point |
 | `server/progress-handler.js` | Authentication checks and conditional storage writes |
-| `scripts/build.mjs` | Bundles JavaScript and copies the page, styles and PDF to `dist/` |
+| `scripts/build.mjs` | Bundles JavaScript and copies the page and styles to `dist/` |
 
 Edit source files, then rebuild. Do not edit the generated `dist/` files directly.
 The build keeps HTML, CSS and JavaScript separate. The JavaScript bundle is readable

@@ -51,9 +51,9 @@ const server = http.createServer(async (req, res) => {
     } else if (url.pathname.startsWith('/.netlify/')) response = json({ error: 'Account service requires Netlify hosting.' }, 404);
     else {
       const file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
-      if (!['index.html', 'script.js', 'style.css', 'JavaScriptKursplan.pdf'].includes(file)) response = new Response('Not found', { status: 404 });
+      if (!['index.html', 'script.js', 'style.css'].includes(file)) response = new Response('Not found', { status: 404 });
       else response = new Response(await readFile(new URL(`../dist/${file}`, import.meta.url)), { headers: {
-        'Content-Type': file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.js') ? 'text/javascript; charset=utf-8' : file.endsWith('.css') ? 'text/css; charset=utf-8' : 'application/pdf',
+        'Content-Type': file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'text/css; charset=utf-8',
       } });
     }
     res.writeHead(response.status, Object.fromEntries(response.headers));
