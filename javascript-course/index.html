@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Learn JavaScript through 21 guided lessons, coding practice and quizzes based on your class websites, with a complete offline reference guide."
+    />
+    <title>JavaScript — Learn, practice & quiz</title>
+    <!-- Appearance: colors, layout, spacing and responsive rules. -->
+    <link rel="stylesheet" href="style.css" />
+    <!-- Behavior: lesson data, navigation, code exercises, quizzes and saved progress.
+     defer waits until the HTML has been parsed before running this file. -->
+    <script src="script.js" defer></script>
+  </head>
+  <body class="roomy">
+    <!-- PROJECT GUIDE
+  index.html = the page structure
+  style.css  = how the page looks
+  script.js  = lesson content and how the page behaves
+
+  Keep all three files in the same folder. Open index.html in your browser.
+  Upload all three files together when publishing this website.
+-->
+    <a class="skip" href="#main">Skip to study guide</a>
+    <div class="mobile-shade" id="shade"></div>
+    <div class="shell">
+      <!-- Sidebar: course access and the original reference library. -->
+      <aside class="sidebar" id="study-sidebar" aria-label="Study sections">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">JS</div>
+          <div>
+            <strong>JavaScript</strong
+            ><small>Learn · Practice · Remember</small>
+          </div>
+        </div>
+        <button class="nav-button course-nav" data-view="course">
+          <strong>Learning path</strong
+          ><span class="nav-count" id="course-count">0/21</span>
+        </button>
+        <div class="nav-group">Reference library</div>
+        <button class="nav-button" data-view="home">
+          <span>Reference desk</span><span aria-hidden="true">⌂</span>
+        </button>
+        <button class="nav-button" data-view="saved">
+          <span>Bookmarks</span
+          ><span class="nav-count" id="bookmark-count">0</span>
+        </button>
+        <button class="nav-button" data-view="all">
+          <span>All topics</span><span class="nav-count" id="all-count"></span>
+        </button>
+        <nav id="navigation" aria-label="Topics"></nav>
+        <div class="nav-footer">
+          <div><span id="progress-count">0</span> topics studied</div>
+          <div
+            class="progress-track"
+            role="progressbar"
+            aria-label="Study progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div id="progress-fill"></div>
+          </div>
+          <div id="progress-caption">One topic at a time.</div>
+        </div>
+      </aside>
+      <div class="workspace">
+        <!-- Top toolbar: search, playground, reading settings and help. -->
+        <header class="topbar">
+          <button
+            class="icon-btn mobile-menu"
+            id="menu-button"
+            aria-label="Open topic navigation"
+            aria-controls="study-sidebar"
+            aria-expanded="false"
+          >
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <label class="search"
+            ><svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m16 16 4.5 4.5" /></svg
+            ><input
+              id="search"
+              type="search"
+              placeholder="Find a keyword, method, or idea…"
+              aria-label="Search all JavaScript topics"
+              autocomplete="off"
+            /><kbd class="shortcut">/</kbd></label
+          >
+          <button
+            class="btn"
+            id="playground-button"
+            aria-label="Open JavaScript playground"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" /></svg
+            ><span>Playground</span>
+          </button>
+          <button
+            class="icon-btn"
+            id="settings-button"
+            aria-label="Reading and progress settings"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+              <circle cx="8" cy="6" r="2" fill="currentColor" />
+              <circle cx="16" cy="12" r="2" fill="currentColor" />
+              <circle cx="10" cy="18" r="2" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            class="icon-btn help-button"
+            id="help-button"
+            aria-label="How to use this guide"
+          >
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 2-2.5 2-2.5 4M12 17h.01" />
+            </svg>
+          </button>
+        </header>
+        <!-- script.js inserts the selected lesson or reference content into #view. -->
+        <main class="content" id="main" tabindex="-1">
+          <div id="view"></div>
+          <footer class="footer">
+            <p>
+              <strong>Different categories, one useful guide.</strong> Keywords
+              and reserved words belong to JavaScript syntax. Built-in objects
+              and values are part of the language. The DOM, fetch and browser
+              storage are host APIs; Node.js supplies another set of APIs.
+            </p>
+            <p>
+              This is a broad study reference, not an exhaustive specification
+              or a list of every API. Newer features are marked so you can check
+              support. Links open online reference pages; the guide and its
+              standard examples work offline.
+            </p>
+            <div class="footer-links">
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Full JavaScript reference ↗</a
+              ><a
+                href="https://developer.mozilla.org/en-US/docs/Web/API"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Browser API reference ↗</a
+              ><a
+                href="https://nodejs.org/api/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Node.js reference ↗</a
+              ><button class="btn" id="footer-help">
+                How to use this guide
+              </button>
+            </div>
+            <p class="status-note">
+              Reference review: 28 October 2026. Study progress is saved in this
+              browser when local storage is available.
+            </p>
+          </footer>
+        </main>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <!-- Dialogs stay hidden until a corresponding button opens them. -->
+    <dialog id="runner-dialog" aria-labelledby="runner-title">
+      <div class="dialog-head">
+        <h2 id="runner-title">JavaScript playground</h2>
+        <button
+          class="icon-btn"
+          data-close="runner-dialog"
+          aria-label="Close playground"
+        >
+          ✕
+        </button>
+      </div>
+      <div class="dialog-body">
+        <p class="runner-help">
+          Edit the example and press Run. Use console.log(...) to see values.
+          This isolated runner supports core JavaScript and await, but has no
+          page DOM, network or module files. Each run starts fresh and stops
+          after 3 seconds.
+        </p>
+        <div class="editor-label">
+          <label for="editor">JavaScript</label
+          ><span>Ctrl / ⌘ + Enter to run</span>
+        </div>
+        <textarea
+          class="editor"
+          id="editor"
+          spellcheck="false"
+          autocapitalize="off"
+          autocorrect="off"
+          aria-label="Editable JavaScript example"
+        ></textarea>
+        <div class="runner-actions">
+          <button class="btn primary" id="run-button">▶ Run code</button
+          ><button class="btn" id="stop-button" disabled>Stop</button
+          ><button class="btn" id="reset-button">Reset example</button
+          ><button class="btn" id="copy-editor">Copy</button
+          ><span class="run-state" id="run-state" role="status">Ready</span>
+        </div>
+        <div class="editor-label"><span>Console output</span></div>
+        <pre
+          class="console"
+          id="console"
+          aria-live="polite"
+          aria-label="Code output"
+        >
+Your output will appear here.</pre
+        >
+      </div>
+    </dialog>
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-head">
+        <h2 id="settings-title">Make it comfortable</h2>
+        <button
+          class="icon-btn"
+          data-close="settings-dialog"
+          aria-label="Close settings"
+        >
+          ✕
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="preferences">
+          <div class="preference-row">
+            <div>
+              <label for="text-size">Text size</label
+              ><small>Readable notes and code.</small>
+            </div>
+            <select id="text-size">
+              <option value="standard">Standard</option>
+              <option value="large">Large</option>
+              <option value="extra">Extra large</option>
+            </select>
+          </div>
+          <div class="preference-row">
+            <div>
+              <label for="theme">Color theme</label
+              ><small>Choose the contrast you prefer.</small>
+            </div>
+            <select id="theme">
+              <option value="dark">Dark navy</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <div class="preference-row">
+            <div>
+              <label for="spacing">Reading space</label
+              ><small>More room between paragraphs.</small>
+            </div>
+            <select id="spacing">
+              <option value="roomy">Roomy</option>
+              <option value="regular">Regular</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-actions">
+          <button class="btn" id="export-progress">
+            Download progress backup</button
+          ><button class="btn" id="import-progress">
+            Restore progress backup</button
+          ><input
+            type="file"
+            id="import-file"
+            accept="application/json,.json"
+            hidden
+          />
+        </div>
+        <p class="storage-note" id="storage-note">
+          Lesson progress, exercise code, quiz answers, bookmarks, completed
+          topics and reading preferences are saved on this device. Moving this
+          folder or changing browsers may use different storage. Download a
+          backup to keep your progress.
+        </p>
+      </div>
+    </dialog>
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <div class="dialog-head">
+        <h2 id="help-title">A small guide to your guide</h2>
+        <button
+          class="icon-btn"
+          data-close="help-dialog"
+          aria-label="Close help"
+        >
+          ✕
+        </button>
+      </div>
+      <div class="dialog-body help-copy">
+        <p>
+          <strong>Start with the Learning path</strong> for 21 guided lessons
+          based on your 4 class websites. Each lesson has two explanation pages,
+          practice, and a three-question quiz. Use Continue on both lesson
+          pages, pass the practice, and get 3/3 on the quiz to complete a
+          lesson. All lessons are available from the start.
+        </p>
+        <p>
+          Your code, lesson progress, quiz answers and best scores are saved
+          with your bookmarks. You can retry freely. The original reference
+          library remains available below the Learning path button.
+        </p>
+        <ul>
+          <li>
+            <strong>Search everything.</strong> Press / to search names,
+            explanations and examples. Several words narrow the results.
+          </li>
+          <li>
+            <strong>Click a topic</strong> to open its notes. Save a bookmark
+            for later or mark it studied when it feels familiar.
+          </li>
+          <li>
+            <strong>Try an example.</strong> Runnable examples open in the
+            playground. Change a value and run again. Output appears below the
+            editor.
+          </li>
+          <li>
+            <strong>Check the environment label.</strong> Module, Browser and
+            Node.js examples need the environment described in their notes. They
+            remain available to read and copy offline.
+          </li>
+          <li>
+            <strong>Keep your progress.</strong> Use Reading settings to change
+            text size or download a progress backup. No account or internet
+            connection is required to study.
+          </li>
+        </ul>
+        <p>
+          Blue reference links open official documentation online. The guide
+          contains broad coverage of the language and common APIs; those
+          references provide exhaustive method lists and current compatibility.
+        </p>
+      </div>
+    </dialog>
+
+    <noscript
+      ><p class="noscript-message">
+        This interactive guide needs JavaScript enabled in your browser. Keep
+        index.html, style.css and script.js together, then open index.html in a
+        current browser such as Chrome, Edge, Firefox or Safari.
+      </p></noscript
+    >
+  </body>
+</html>
