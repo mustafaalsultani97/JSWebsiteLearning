@@ -13,6 +13,7 @@
 
 import { createAccounts } from './accounts.js';
 import { cleanExtraProgress, isExtraId, mergeExtraProgress } from '../shared/progress.js';
+import { createCheckObserver, executePracticeChecks, explainPracticeError, feedbackForResult, timeoutFeedback } from './practice-feedback.js';
 /* 1. COURSE CONTENT — authored lessons live in lessons/, grouped by topic. */
 import { COURSE, lessonProgressKey, lessonProgressKeys, initialLessonCode, hasLessonWork } from "./lessons/index.js";
 
@@ -4886,7 +4887,7 @@ function renderPractice(lesson, s, ex = lesson.exercise, extra = false) {
   <div class="practice-hints"><h3>Get a little help</h3>${ex.hints.map((hint, i) => `<details class="hint-box"><summary>Hint ${i + 1}${i === 0 ? ' · Where to begin' : i === 1 ? ' · The next step' : ' · Put it together'}</summary><p>${escapeHTML(hint)}</p></details>`).join('')}</div>
   <details class="hint-box"><summary>Worked solution, with reasoning</summary><p>Compare this with your attempt. Reading a solution does not complete the exercise.</p><pre><code>${highlight(ex.solution)}</code></pre><ol>${ex.solutionNotes.map(note => `<li>${escapeHTML(note)}</li>`).join('')}</ol></details>
   ${ex.kind === 'code' ? '<p class="course-storage">Core JavaScript only. No page DOM, network, or terminal access. Each run starts fresh and stops after 3 seconds.</p>' : ''}</section>
-  ${ex.kind === "code" ? `<section class="code-workbench" aria-label="Coding practice"><div class="code-tab"><label for="course-editor"><strong>practice.js</strong></label><span>Ctrl / ⌘ + Enter</span></div><textarea id="course-editor" class="course-editor" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Practice JavaScript code" maxlength="60000">${escapeHTML(s.code)}</textarea><div class="course-code-actions"><button class="btn course-primary" id="course-run" data-check>▶ Run & check</button><button class="btn" id="course-stop" data-stop disabled>Stop</button><button class="btn" data-reset-code>Reset code</button><span class="course-save-status" id="course-save-status">${storageOK ? "Saved locally" : "Session only"}</span></div><div class="course-console-label">CONSOLE</div><pre id="course-console" class="course-console" aria-label="Exercise output">Run your code to see the output here.</pre><div id="practice-status" class="practice-status ${s.passed ? "success" : ""}" role="status">${s.passed ? "✓ Practice passed previously. You can keep experimenting." : "Ready when you are. Run your code to check it."}</div><ul class="exercise-checks" id="exercise-checks">${ex.tests.map((t) => `<li>○ ${escapeHTML(t.label)}</li>`).join("")}</ul></section>` : renderOrder(ex, s)}</div>
+  ${ex.kind === "code" ? `<section class="code-workbench" aria-label="Coding practice"><div class="code-tab"><label for="course-editor"><strong>practice.js</strong></label><span>Ctrl / ⌘ + Enter</span></div><textarea id="course-editor" class="course-editor" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Practice JavaScript code" maxlength="60000">${escapeHTML(s.code)}</textarea><div class="course-code-actions"><button class="btn course-primary" id="course-run" data-check>▶ Run & check</button><button class="btn" id="course-stop" data-stop disabled>Stop</button><button class="btn" data-reset-code>Reset code</button><span class="course-save-status" id="course-save-status">${storageOK ? "Saved locally" : "Session only"}</span></div><div class="course-console-label">CONSOLE</div><pre id="course-console" class="course-console" aria-label="Exercise output">Run your code to see the output here.</pre><div id="practice-status" class="practice-status ${s.passed ? "success" : ""}" role="status">${s.passed ? "✓ Practice passed previously. You can keep experimenting." : "Ready when you are. Run your code to check it."}</div><section id="practice-feedback" class="practice-feedback" aria-label="Practice feedback" aria-live="polite" hidden></section><ul class="exercise-checks" id="exercise-checks">${ex.tests.map((t) => `<li>○ ${escapeHTML(t.label)}</li>`).join("")}</ul></section>` : renderOrder(ex, s)}</div>
   ${extra ? extraFooter(lesson, ex) : `<div class="lesson-bottom"><button class="btn" data-step="1">← Back to the lesson</button><button class="btn course-primary" data-step="3">${s.passed ? "Practice complete · Take the quiz" : "Take the quiz"} →</button></div>`}`;
 }
 function extraCount(lesson) {
@@ -4959,6 +4960,19 @@ function showPracticePassed() {
   if (nextButton)
     nextButton.textContent = "Practice complete · Take the quiz →";
 }
+function showPracticeFeedback(feedback) {
+  const panel = document.getElementById('practice-feedback');
+  if (!panel) return;
+  panel.hidden = !feedback;
+  if (!feedback) { panel.innerHTML = ''; return; }
+  const value = item => `<pre>${escapeHTML(item.text)}</pre>${['requirement', 'undefined'].includes(item.type) ? '' : `<span class="feedback-type">${escapeHTML(item.type)}</span>`}`;
+  panel.innerHTML = `<div class="exercise-label">LET’S FIX ONE THING AT A TIME</div><h3>${escapeHTML(feedback.title)}</h3><p>${escapeHTML(feedback.explanation)}</p>
+    ${feedback.actual && feedback.expected ? `<dl class="feedback-values"><div><dt>Expected</dt><dd>${value(feedback.expected)}</dd></div><div><dt>Your result</dt><dd>${value(feedback.actual)}</dd></div></dl>` : ''}
+    <div class="feedback-hint"><strong>Hint · Try this next</strong><p>${escapeHTML(feedback.hint)}</p></div>
+    ${feedback.exerciseHint ? `<details><summary>Hint for this exercise</summary><p>${escapeHTML(feedback.exerciseHint)}</p></details>` : ''}
+    ${feedback.technical ? `<details><summary>JavaScript error message</summary><pre>${escapeHTML(feedback.technical)}</pre></details>` : ''}
+    <p class="feedback-next">Change one thing, then run your code again. Your draft stays here.</p>`;
+}
 /* 10. COURSE CODE RUNNER — sandboxed execution with a three-second limit. */
 let courseRun = null,
   courseRunTimer = null,
@@ -4978,9 +4992,9 @@ function stopCourseRun(message) {
     document.getElementById("practice-status").textContent = message;
 }
 // The frame has an opaque origin and a no-network CSP. The worker keeps loops off the UI thread.
-function courseFrameMain() {
+function courseFrameMain(executePracticeChecks, createCheckObserver) {
   let worker;
-  function workerMain() {
+  function workerMain(executePracticeChecks, createCheckObserver) {
     self.onmessage = async ({ data }) => {
       const logs = [];
       let displayed = 0;
@@ -5013,38 +5027,7 @@ function courseFrameMain() {
         table: log,
         dir: log,
       };
-      try {
-        const AsyncFunction = Object.getPrototypeOf(
-          async function () {},
-        ).constructor;
-        const tail =
-          "\n;" +
-          data.tests
-            .map(
-              (t, i) =>
-                `try { __check(${i}, !!(${t.expression})); } catch (__err) { __check(${i}, false, __err.message); }`,
-            )
-            .join("\n");
-        const results = [];
-        await new AsyncFunction(
-          "console",
-          "__logs",
-          "__check",
-          '"use strict";\n' + data.code + tail,
-        )(output, logs, (index, pass, detail) =>
-          results.push({
-            index,
-            pass: pass === true,
-            detail: detail ? String(detail).slice(0, 400) : "",
-          }),
-        );
-        self.postMessage({ type: "results", results });
-      } catch (error) {
-        self.postMessage({
-          type: "error",
-          text: error.name + ": " + error.message,
-        });
-      }
+      self.postMessage(await executePracticeChecks(data, output, logs, createCheckObserver));
     };
   }
   addEventListener("message", (event) => {
@@ -5054,7 +5037,7 @@ function courseFrameMain() {
     try {
       worker?.terminate();
       const url = URL.createObjectURL(
-        new Blob(["(" + workerMain.toString() + ")()"], {
+        new Blob(["(" + workerMain.toString() + ")(" + executePracticeChecks.toString() + "," + createCheckObserver.toString() + ")"], {
           type: "text/javascript",
         }),
       );
@@ -5079,7 +5062,7 @@ function courseFrameMain() {
 const COURSE_RUNNER_HTML =
   "<!doctype html><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src 'none';\"><script>(" +
   courseFrameMain.toString() +
-  ")();<\/script>";
+  ")(" + executePracticeChecks.toString() + "," + createCheckObserver.toString() + ");<\/script>";
 function runCourseCode() {
   const lesson = activeLesson();
   const practice = lesson && activePractice(lesson);
@@ -5087,6 +5070,7 @@ function runCourseCode() {
   const editor = document.getElementById("course-editor");
   if (!editor) return;
   stopCourseRun();
+  showPracticeFeedback(null);
   const { state: s, exercise, extraId } = practice;
   s.code = editor.value;
   persist();
@@ -5120,6 +5104,7 @@ function runCourseCode() {
     output.textContent +=
       "\nStopped after 3 seconds. Check your loop condition and update.";
     output.classList.add("has-error");
+    showPracticeFeedback(timeoutFeedback);
     stopCourseRun("Time limit reached. Revise your code and try again.");
   }, 3000);
 }
@@ -5158,8 +5143,10 @@ window.addEventListener("message", (event) => {
   if (data.type === "error") {
     output.textContent += (output.textContent ? "\n" : "") + String(data.text);
     output.classList.add("has-error");
+    const feedback = explainPracticeError(data.error);
+    showPracticeFeedback({ ...feedback, technical: data.error?.message || String(data.text) });
     stopCourseRun(
-      "There is an error to fix. Read the console, then try again.",
+      "The code stopped. Start with the explanation and hint below.",
     );
     return;
   }
@@ -5172,11 +5159,15 @@ window.addEventListener("message", (event) => {
     document.getElementById("exercise-checks").innerHTML = tests
       .map((t, i) => {
         const r = results.find((r) => r.index === i);
-        return `<li class="${r?.pass ? "pass" : "fail"}">${r?.pass ? "✓" : "↺"} ${escapeHTML(t.label)}${r?.detail ? " — " + escapeHTML(r.detail) : ""}</li>`;
+        return `<li class="${r?.pass ? "pass" : "fail"}">${r?.pass ? "✓" : "↺"} ${escapeHTML(t.label)}${r?.error ? ' — could not check yet' : ''}</li>`;
       })
       .join("");
     if (!output.textContent)
       output.textContent = "Finished with no console output.";
+    if (!passed) {
+      const index = tests.findIndex((_, i) => !results.some(r => r.index === i && r.pass));
+      showPracticeFeedback(feedbackForResult(results.find(r => r.index === index), tests[index], run.exercise));
+    }
     if (passed) {
       const state = run.extraId ? extraState(run.lesson, run.exercise) : lessonState(run.lesson);
       state.passed = true;
@@ -5190,7 +5181,7 @@ window.addEventListener("message", (event) => {
     stopCourseRun(
       passed
         ? run.extraId ? "✓ Extra exercise completed. Try another, or continue to the next lesson whenever you’re ready." : "✓ All checks passed. You’re ready for the quiz."
-        : "Some checks need another look. Use the hints and try again.",
+        : `${tests.filter((_, i) => results.some(r => r.index === i && r.pass)).length} of ${tests.length} checks passed. Start with the feedback below.`,
     );
     document
       .getElementById("practice-status")
@@ -5262,6 +5253,7 @@ document.addEventListener("click", (event) => {
   }
   if (button.hasAttribute("data-reset-code")) {
     stopCourseRun();
+    showPracticeFeedback(null);
     const practice = activePractice(lesson);
     if (!practice) return;
     const draft = practice.state;

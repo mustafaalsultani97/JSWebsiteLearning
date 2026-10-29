@@ -2282,6 +2282,24 @@ body.course-mode .content {
   border: 0;
 }
 
+/* Feedback describes observed results and offers a next step, not a solution. */
+.practice-feedback { margin: 18px; padding: 22px; border: 1px solid var(--gold); border-radius: 12px; background: var(--panel); min-width: 0; }
+.practice-feedback h3 { font-size: 21px; line-height: 1.35; margin: 8px 0 12px; }
+.practice-feedback p { font-size: 15px; line-height: 1.65; margin: 10px 0; overflow-wrap: anywhere; }
+.feedback-values { display: grid; gap: 12px; margin: 18px 0; }
+.feedback-values > div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); min-width: 0; }
+.feedback-values dt { font-size: 12px; font-weight: bold; color: var(--muted); margin-bottom: 6px; }
+.feedback-values dd { margin: 0; }
+.practice-feedback pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font-size: 14px; line-height: 1.55; }
+.feedback-type { font-size: 11px; color: var(--muted); }
+.feedback-hint { padding: 14px 16px; background: var(--raised); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; }
+.feedback-hint > strong { font-size: 14px; color: var(--accent); }
+.feedback-hint p { margin-bottom: 0; }
+.practice-feedback details { margin-top: 14px; font-size: 14px; }
+.practice-feedback summary { color: var(--accent); cursor: pointer; }
+.practice-feedback .feedback-next { font-size: 13px; color: var(--muted); margin-bottom: 0; }
+@media (max-width: 760px) { .practice-feedback { padding: 16px; margin: 12px; } }
+
 /* Optional practice is separate from the four required lesson steps. */
 .extra-nav { margin: -6px 0 26px; display: flex; justify-content: flex-end; }
 .extra-nav .btn { flex-wrap: wrap; white-space: normal; text-align: left; }

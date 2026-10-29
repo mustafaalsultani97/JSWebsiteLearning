@@ -99,6 +99,8 @@ storage require the Netlify deployment. Press Ctrl+C to stop the preview.
 | `javascript-course/script.js` | Navigation, lesson screens, code runners and progress |
 | `javascript-course/lessons/` | Teaching text, examples, practice tasks, hints, solutions and quizzes, grouped into four topic files |
 | `javascript-course/extra-practice/` | Ten optional exercises per lesson, with independent checks, hints and explained solutions |
+| `javascript-course/practice-feedback.js` | Observed values, plain-English error explanations, and hints for failed coding checks |
+| `javascript-course/lessons/check-hints.js` | A targeted hint for each required coding check |
 | `javascript-course/accounts.js` | Sign-in, signup, sign-out, recovery and account UI |
 | `javascript-course/progress-sync.js` | Browser backup, retry, and cloud synchronization |
 | `shared/progress.js` | Data validation and merging changes from different devices |
@@ -132,6 +134,19 @@ code task defines instructions, a starter, a worked solution, check expressions,
 a hint, and solution reasoning. `npm test` runs all 200 extra code solutions,
 verifies that their starters need work, validates the ten Git scenarios, and
 checks saving and concurrent edits within the same lesson.
+
+When a coding attempt fails, the practice screen explains the first failed check,
+shows expected and observed values where available, and offers a targeted hint.
+Syntax errors, missing names, wrong types, missing returns and timeouts have
+separate explanations. After one fix, running again reveals the next issue.
+Worked solutions remain behind their existing disclosure; feedback does not
+automatically open them. Feedback comes from local checks, not an AI service.
+
+`scripts/practice-checks.mjs` parses the authored assertions during the build and
+adds value observations without calling learner functions twice. The build embeds
+the prepared course content, so the parser is not downloaded by learners. Checks
+still run in the isolated, time-limited worker; progress and account formats are
+unchanged. Tests run every worked solution through this same feedback runner.
 
 ## Storage and access
 
