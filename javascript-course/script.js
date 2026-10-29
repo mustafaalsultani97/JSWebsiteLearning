@@ -6,12 +6,12 @@
   Sections 8 and 11 handle progress and button clicks.
   Sections 3, 6 and 10 are the more advanced code runners.
 
-  This is ordinary browser JavaScript: no framework, installation or build step.
-  index.html loads this file with defer, so page elements exist when it runs.
-  Progress is stored in this browser, not inside these files.
+  This is plain JavaScript with no UI framework. npm run build bundles the
+  account SDK and these modules for Netlify. index.html loads the built file.
+  accounts.js handles sign-in; progress-sync.js handles private cloud saves.
 */
 
-"use strict";
+import { createAccounts } from './accounts.js';
 /* 1. COURSE CONTENT
   Each module points to a class website. Each lesson contains:
   - steps: the two explanation pages
@@ -5768,7 +5768,8 @@ const escapeHTML = (s) =>
         c
       ],
   );
-const KEY = "javascript-study-companion-v1";
+const KEY = "javascript-study-companion-v1"; // Original guest storage stays intact.
+let accounts;
 let storageOK = true;
 let progress = {
   version: 1,
@@ -5817,11 +5818,19 @@ function validateProgress(value) {
   };
 }
 function persist() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(progress));
-    storageOK = true;
-  } catch {
-    storageOK = false;
+  if (!accounts?.loading) {
+    if (accounts?.signedIn) {
+      accounts.save(progress);
+      storageOK = accounts.localOK;
+    }
+    else {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(progress));
+        storageOK = true;
+      } catch {
+        storageOK = false;
+      }
+    }
   }
   updateProgress();
   updateCourseBadge();
@@ -6118,7 +6127,7 @@ function setMenu(open) {
     "aria-label",
     open ? "Close topic navigation" : "Open topic navigation",
   );
-  $("#study-sidebar").inert = mobileView.matches && !open;
+  $("#study-sidebar").inert = document.body.classList.contains("account-loading") || (mobileView.matches && !open);
 }
 mobileView.addEventListener("change", () => setMenu(false));
 function navigate(id, hash = true) {
@@ -6126,6 +6135,10 @@ function navigate(id, hash = true) {
   clearTimeout(courseDraftTimer);
   persist();
   currentView = validView(id) ? id : "course";
+  if (currentView.startsWith("lesson-")) {
+    progress.course.last = currentView.slice(7);
+    persist();
+  }
   query = "";
   $("#search").value = "";
   level = "all";
@@ -6589,7 +6602,7 @@ function courseDashboard() {
         )}</div><p class="source-note">Class source: <a href="${unit.source}" target="_blank" rel="noopener noreferrer">${escapeHTML(unit.sourceTitle)} ↗</a></p></section>`;
     })
     .join("")}
-  <div class="course-how"><div><strong>01 · Understand</strong><p>Two short explanations, worked examples, and a key takeaway in every lesson.</p></div><div><strong>02 · Put it to work</strong><p>Edit real JavaScript with checks and hints. The Git lesson uses a command-order simulation.</p></div><div><strong>03 · Check your learning</strong><p>Three questions with explanations. Retry as often as you need; your best score stays.</p></div></div><p class="course-storage">${storageOK ? "Your code, quiz answers and progress are saved in this browser. Use Settings to download a progress backup." : "Browser storage is unavailable. Use Settings to download your progress before closing the guide."} All lessons work offline; the source links need internet access.</p>`;
+  <div class="course-how"><div><strong>01 · Understand</strong><p>Two short explanations, worked examples, and a key takeaway in every lesson.</p></div><div><strong>02 · Put it to work</strong><p>Edit real JavaScript with checks and hints. The Git lesson uses a command-order simulation.</p></div><div><strong>03 · Check your learning</strong><p>Three questions with explanations. Retry as often as you need; your best score stays.</p></div></div><p class="course-storage">${storageOK ? "Guest progress is saved in this browser. Sign in to save across devices, or use Settings to download a backup." : "Browser storage is unavailable. Use Settings to download your progress before closing the guide."} Once loaded, lessons can be studied offline. Account sync and source links need internet access.</p>`;
 }
 function lessonStepStatus(s, index) {
   return index < 2
@@ -6981,11 +6994,12 @@ document.addEventListener("input", (event) => {
   const lesson = activeLesson();
   if (!lesson) return;
   lessonState(lesson).code = event.target.value;
+  // Capture every keystroke locally; cloud writes are debounced in progress-sync.js.
+  persist();
   const label = document.getElementById("course-save-status");
   label.textContent = "Saving…";
   clearTimeout(courseDraftTimer);
   courseDraftTimer = setTimeout(() => {
-    persist();
     if (document.getElementById("course-save-status"))
       document.getElementById("course-save-status").textContent = storageOK
         ? "Saved locally"
@@ -7051,3 +7065,47 @@ applySettings();
 updateProgress();
 const initial = readHash();
 navigate(validView(initial) ? initial : "course", false);
+accounts = createAccounts({
+  getProgress: () => validateProgress(progress),
+  getGuest(onlyMeaningful = false) {
+    try {
+      const guest = validateProgress(JSON.parse(localStorage.getItem(KEY)));
+      if (!onlyMeaningful) return guest;
+      // Rendering the dashboard creates untouched lesson defaults. Do not import
+      // those over real drafts already saved in an account.
+      for (const lesson of COURSE.lessons) {
+        const s = guest.course.lessons[lesson.id];
+        if (s && !s.read.length && !s.passed && !s.best && !s.step && !s.submitted
+          && s.answers.every(a => a === null) && s.code === (lesson.exercise.starter || '')) {
+          delete guest.course.lessons[lesson.id];
+        }
+      }
+      return guest.saved.length || guest.done.length || Object.keys(guest.course.lessons).length ? guest : null;
+    } catch { return null; }
+  },
+  applyProgress(value, { resume }) {
+    stopCourseRun();
+    clearTimeout(courseDraftTimer);
+    const focused = document.activeElement;
+    const editorFocused = focused?.id === 'course-editor';
+    const selection = editorFocused ? [focused.selectionStart, focused.selectionEnd] : null;
+    progress = validateProgress(value);
+    applySettings();
+    updateProgress();
+    updateCourseBadge();
+    if (resume) navigate('lesson-' + progress.course.last);
+    else render();
+    if (editorFocused && $('#course-editor')) {
+      $('#course-editor').focus();
+      $('#course-editor').setSelectionRange(...selection);
+    }
+  },
+  setBusy(busy) {
+    document.body.classList.toggle('account-loading', busy);
+    $('#main').inert = busy;
+    $('#study-sidebar').inert = busy || (mobileView.matches && !document.body.classList.contains('nav-open'));
+    document.querySelectorAll('.topbar > :not(.account-control)').forEach(element => { element.inert = busy; });
+    if (busy) document.querySelectorAll('dialog[open]:not(#account-dialog)').forEach(dialog => dialog.close());
+  },
+});
+void accounts.start();

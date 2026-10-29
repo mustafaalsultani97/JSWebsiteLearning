@@ -8,6 +8,31 @@
   @media rules adapt the design for smaller screens and accessibility.
 */
 
+/* Accounts: the HTML provides the forms; accounts.js handles sign-in and saving. */
+[hidden] { display: none !important; }
+.account-control { display: grid; gap: 3px; max-width: 220px; flex-shrink: 0; }
+#account-status { font-size: 11px; line-height: 1.3; color: var(--muted); max-width: 220px; }
+#account-dialog { width: min(530px, calc(100vw - 24px)); }
+#account-dialog .dialog-body { padding-top: 0; }
+#account-intro { color: var(--muted); }
+.account-form { display: grid; gap: 16px; }
+.account-form label { display: grid; gap: 5px; font-size: 15px; font-weight: bold; }
+.account-form input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: var(--bg); color: var(--text); }
+.account-form input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.account-switches, .account-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.text-button { border: 0; padding: 8px 0; color: var(--accent); background: transparent; text-decoration: underline; cursor: pointer; }
+#account-message:not(:empty), #account-sync-status { padding: 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 14px; background: var(--raised); }
+#account-message.is-error { border-color: var(--gold); }
+.account-privacy, .guest-import p { font-size: 12px; line-height: 1.6; color: var(--muted); }
+.account-privacy, .guest-import { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 20px; }
+#account-email-value { overflow-wrap: anywhere; }
+body.account-loading #main { opacity: .65; }
+@media (max-width: 700px) {
+  .account-control { max-width: 132px; }
+  #account-button { font-size: 12px; padding: 8px; }
+  #account-status { max-width: 132px; font-size: 10px; }
+}
+
 /* 1. Theme variables and basic elements */
 :root {
   color-scheme: dark;

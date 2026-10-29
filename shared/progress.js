@@ -1,0 +1,90 @@
+// Shared by the browser and the server. No passwords or auth tokens belong here.
+export const MAX_PROGRESS_BYTES = 2_000_000;
+export const copy = (value) => structuredClone(value);
+export const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+export const freshProgress = () => ({
+  version: 1, saved: [], done: [],
+  settings: { size: 'standard', theme: 'dark', spacing: 'roomy' },
+  course: { last: 'first-program', lessons: {} },
+});
+
+const object = (v) => v && typeof v === 'object' && !Array.isArray(v);
+const id = (v) => typeof v === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(v);
+const integer = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
+function requireValue(valid) {
+  if (!valid) throw new Error('Invalid progress data.');
+}
+function ids(value) {
+  requireValue(Array.isArray(value) && value.length <= 1000 && value.every(id));
+  return [...new Set(value)];
+}
+
+// Reject malformed/oversized input and copy only recognized fields to storage.
+export function cleanProgress(value) {
+  requireValue(object(value) && value.version === 1);
+  const out = freshProgress();
+  out.saved = ids(value.saved);
+  out.done = ids(value.done);
+  const s = value.settings;
+  requireValue(object(s) && ['standard', 'large', 'extra'].includes(s.size)
+    && ['dark', 'light'].includes(s.theme) && ['roomy', 'regular'].includes(s.spacing));
+  out.settings = { size: s.size, theme: s.theme, spacing: s.spacing };
+  const course = value.course;
+  requireValue(object(course) && id(course.last) && object(course.lessons));
+  const entries = Object.entries(course.lessons);
+  requireValue(entries.length <= 64);
+  out.course.last = course.last;
+  for (const [key, l] of entries) {
+    requireValue(id(key) && object(l) && integer(l.step, 3)
+      && Array.isArray(l.read) && l.read.length <= 2 && l.read.every(n => integer(n, 1))
+      && typeof l.code === 'string' && l.code.length <= 60000
+      && typeof l.passed === 'boolean' && integer(l.best, 3)
+      && Array.isArray(l.answers) && l.answers.length === 3
+      && l.answers.every(n => n === null || integer(n, 9))
+      && typeof l.submitted === 'boolean'
+      && Array.isArray(l.order) && l.order.length <= 3 && l.order.every(n => integer(n, 2)));
+    out.course.lessons[key] = {
+      step: l.step, read: [...new Set(l.read)], code: l.code, passed: l.passed,
+      answers: [...l.answers], submitted: l.submitted && l.answers.every(n => n !== null),
+      best: l.best, order: [...new Set(l.order)],
+    };
+  }
+  return out;
+}
+
+function mergeSet(base = [], local = [], remote = []) {
+  // Apply local additions/removals to the remote set, preserving remote changes.
+  return [...new Set([...remote.filter(x => !base.includes(x) || local.includes(x)),
+    ...local.filter(x => !base.includes(x))])];
+}
+function pick(base, local, remote) {
+  return copy(equal(local, base) ? remote : local);
+}
+
+// Three-way merge: only this device's edits override the latest cloud snapshot.
+// Concurrent edits to the same draft/quiz use this device's version; achievements
+// from different devices are combined. Explicit removals are kept as removals.
+export function mergeProgress(base, local, remote) {
+  const out = copy(remote);
+  out.saved = mergeSet(base.saved, local.saved, remote.saved);
+  out.done = mergeSet(base.done, local.done, remote.done);
+  for (const key of ['size', 'theme', 'spacing']) {
+    out.settings[key] = pick(base.settings[key], local.settings[key], remote.settings[key]);
+  }
+  out.course.last = pick(base.course.last, local.course.last, remote.course.last);
+  for (const key of new Set([...Object.keys(base.course.lessons), ...Object.keys(local.course.lessons)])) {
+    const b = base.course.lessons[key], l = local.course.lessons[key], r = remote.course.lessons[key];
+    if (equal(b, l)) continue;
+    if (!l) { delete out.course.lessons[key]; continue; }
+    if (!r || equal(b, r)) { out.course.lessons[key] = copy(l); continue; }
+    const result = copy(r);
+    for (const field of ['step', 'code', 'order']) result[field] = pick(b?.[field], l[field], r[field]);
+    const quiz = v => v ? { answers: v.answers, submitted: v.submitted } : undefined;
+    Object.assign(result, pick(quiz(b), quiz(l), quiz(r)));
+    result.read = mergeSet(b?.read, l.read, r.read);
+    result.passed = equal(b?.passed, l.passed) ? r.passed : (l.passed || r.passed);
+    result.best = equal(b?.best, l.best) ? r.best : Math.max(l.best, r.best);
+    out.course.lessons[key] = result;
+  }
+  return out;
+}

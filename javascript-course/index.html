@@ -20,8 +20,9 @@
   style.css  = how the page looks
   script.js  = lesson content and how the page behaves
 
-  Keep all three files in the same folder. Open index.html in your browser.
-  Upload all three files together when publishing this website.
+  Source code: script.js imports accounts.js and progress-sync.js.
+  Run npm install and npm run build from the repository folder.
+  Netlify publishes dist/ and runs the account progress function on the server.
 -->
     <a class="skip" href="#main">Skip to study guide</a>
     <div class="mobile-shade" id="shade"></div>
@@ -99,6 +100,10 @@
               <path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" /></svg
             ><span>Playground</span>
           </button>
+          <div class="account-control">
+            <button class="btn" id="account-button" disabled>Sign in / Join</button>
+            <span id="account-status" role="status">Checking account…</span>
+          </div>
           <button
             class="icon-btn"
             id="settings-button"
@@ -159,8 +164,8 @@
               </button>
             </div>
             <p class="status-note">
-              Reference review: 28 October 2026. Study progress is saved in this
-              browser when local storage is available.
+              Reference review: 28 October 2026. Guests save progress on this
+              device. Sign in to save your place across devices.
             </p>
           </footer>
         </main>
@@ -168,6 +173,43 @@
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <!-- Dialogs stay hidden until a corresponding button opens them. -->
+    <dialog id="account-dialog" aria-labelledby="account-title" aria-describedby="account-intro">
+      <div class="dialog-head">
+        <h2 id="account-title">Sign in</h2>
+        <button class="icon-btn" data-close="account-dialog" aria-label="Close account window">×</button>
+      </div>
+      <div class="dialog-body">
+        <p id="account-intro">Sign in to save your place across devices.</p>
+        <p id="account-message" role="status" aria-live="polite"></p>
+        <form id="account-form" class="account-form">
+          <label id="account-name-row" hidden>Your name <input id="account-name" autocomplete="name" maxlength="100" /></label>
+          <label id="account-email-row">Email <input id="account-email" type="email" autocomplete="email" required maxlength="254" /></label>
+          <label id="account-password-row">Password <input id="account-password" type="password" autocomplete="current-password" required maxlength="128" /></label>
+          <label id="account-confirm-row" hidden>Confirm password <input id="account-confirm" type="password" autocomplete="new-password" maxlength="128" /></label>
+          <button id="account-submit" class="btn primary" type="submit">Sign in</button>
+          <button id="account-cancel-password" class="btn" type="button" hidden>Back to my account</button>
+        </form>
+        <div id="account-switches" class="account-switches">
+          <button class="btn" data-account-mode="signup">Create an account</button>
+          <button class="btn" data-account-mode="login">Back to sign in</button>
+          <button class="text-button" data-account-mode="recover">Forgot password?</button>
+        </div>
+        <div id="account-profile" hidden>
+          <p>Signed in as <strong id="account-email-value"></strong></p>
+          <p id="account-sync-status" role="status" aria-live="polite"></p>
+          <div class="account-actions">
+            <button class="btn" id="account-retry">Sync now</button>
+            <button class="btn" id="account-change-password">Change password</button>
+            <button class="btn" id="account-logout">Sign out</button>
+          </div>
+          <div class="guest-import">
+            <button class="btn" id="import-guest-progress">Add this browser’s guest progress</button>
+            <p>Use this only for your own guest work. Overlapping guest drafts replace your account drafts.</p>
+          </div>
+        </div>
+        <p class="account-privacy">Accounts use your email address. Lesson progress, code drafts, quiz answers, bookmarks and reading preferences are stored with Netlify. Guest progress stays in this browser. You can download a progress backup in Reading settings.</p>
+      </div>
+    </dialog>
     <dialog id="runner-dialog" aria-labelledby="runner-title">
       <div class="dialog-head">
         <h2 id="runner-title">JavaScript playground</h2>
@@ -275,9 +317,9 @@ Your output will appear here.</pre
         </div>
         <p class="storage-note" id="storage-note">
           Lesson progress, exercise code, quiz answers, bookmarks, completed
-          topics and reading preferences are saved on this device. Moving this
-          folder or changing browsers may use different storage. Download a
-          backup to keep your progress.
+          topics and reading preferences are saved on this device. Sign in to
+          sync them across devices. Check your account’s save status before
+          switching devices, and download a backup whenever you like.
         </p>
       </div>
     </dialog>
