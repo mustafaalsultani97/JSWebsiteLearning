@@ -1,6 +1,6 @@
 // Shared by the browser and the server. No passwords or auth tokens belong here.
 export const MAX_PROGRESS_BYTES = 2_000_000;
-export const CONSOLE_QUESTION_COUNT = 200;
+export const CONSOLE_QUESTION_COUNT = 300;
 export const copy = (value) => structuredClone(value);
 export const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const freshProgress = () => ({

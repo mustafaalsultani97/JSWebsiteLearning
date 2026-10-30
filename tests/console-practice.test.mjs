@@ -6,13 +6,13 @@ import { CONSOLE_QUESTIONS as questions, CONSOLE_LEVELS as levels } from '../jav
 import { chooseConsoleAnswer, checkConsoleAnswer, consoleStats, renderConsolePractice } from '../javascript-course/console-practice.js';
 import { freshProgress, freshConsoleProgress, cleanProgress, cleanConsoleProgress, mergeProgress, copy, CONSOLE_QUESTION_COUNT } from '../shared/progress.js';
 
-test('200 distinct predictions have four unique choices and twenty ordered levels', () => {
-  assert.equal(questions.length, 200);
+test('300 distinct predictions have four unique choices and thirty ordered levels', () => {
+  assert.equal(questions.length, 300);
   assert.equal(questions.length, CONSOLE_QUESTION_COUNT);
-  assert.equal(new Set(questions.map(q => q.id)).size, 200);
-  assert.equal(new Set(questions.map(q => q.code)).size, 200);
-  assert.equal(new Set(questions.map(q => q.title)).size, 200);
-  assert.equal(levels.length, 20);
+  assert.equal(new Set(questions.map(q => q.id)).size, 300);
+  assert.equal(new Set(questions.map(q => q.code)).size, 300);
+  assert.equal(new Set(questions.map(q => q.title)).size, 300);
+  assert.equal(levels.length, 30);
   for (const [index, q] of questions.entries()) {
     assert.equal(q.id, `console-${String(index + 1).padStart(3, '0')}`);
     assert.equal(q.level, Math.floor(index / 10));
@@ -21,13 +21,18 @@ test('200 distinct predictions have four unique choices and twenty ordered level
     assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < 4);
     assert.ok(q.explanation.trim().length > 20, q.id);
   }
-  for (let answer = 0; answer < 4; answer++) assert.equal(questions.filter(q => q.answer === answer).length, 50);
+  for (let answer = 0; answer < 4; answer++) assert.equal(questions.filter(q => q.answer === answer).length, 75);
 });
 
 test('the original 100 questions and answer positions are unchanged from the published edition', () => {
   // Snapshot of the complete published questions before adding the new set.
   const digest = createHash('sha256').update(JSON.stringify(questions.slice(0, 100))).digest('hex');
   assert.equal(digest, '1c7a1c19eed083f0a2d7973c9e95451bb6172d3350fb7aefaa88b5ab156c6aa7');
+});
+
+test('the published first 200 questions remain unchanged when expert questions are appended', () => {
+  const digest = createHash('sha256').update(JSON.stringify(questions.slice(0, 200))).digest('hex');
+  assert.equal(digest, 'c4d1b02b5764795b36e6bd57810442e14cde25bf5a7ee525e15c7a84e37d6da2');
 });
 
 for (const q of questions) {
@@ -76,14 +81,14 @@ test('old progress defaults safely and full console progress survives serializat
   }
   const restored = cleanProgress(JSON.parse(JSON.stringify(progress)));
   assert.deepEqual(restored, progress);
-  assert.deepEqual(consoleStats(restored.consolePractice), { answered: 200, solved: 200 });
-  assert.equal(restored.consolePractice.current, 199);
+  assert.deepEqual(consoleStats(restored.consolePractice), { answered: 300, solved: 300 });
+  assert.equal(restored.consolePractice.current, 299);
 });
 
 test('console progress rejects invalid IDs, choices, indexes and unbounded records', () => {
   const answer = { choice: 0, submitted: true, solved: false };
-  for (const current of [-1, 200, 1.5, '1']) assert.throws(() => cleanConsoleProgress({ current, answers: {} }));
-  for (const id of ['console-000', 'console-201', 'console-999', 'console-1', 'console-0001', '__proto__']) {
+  for (const current of [-1, 300, 1.5, '1']) assert.throws(() => cleanConsoleProgress({ current, answers: {} }));
+  for (const id of ['console-000', 'console-301', 'console-999', 'console-1', 'console-0001', '__proto__']) {
     assert.throws(() => cleanConsoleProgress({ current: 0, answers: { [id]: answer } }));
   }
   for (const choice of [-1, 4, '0', undefined]) {
@@ -97,13 +102,13 @@ test('independent question attempts merge across devices without losing lesson p
   const base = freshProgress(), local = copy(base), remote = copy(base);
   chooseConsoleAnswer(local.consolePractice, questions[0].answer);
   checkConsoleAnswer(local.consolePractice);
-  remote.consolePractice.current = 199;
-  chooseConsoleAnswer(remote.consolePractice, questions[199].answer);
+  remote.consolePractice.current = 299;
+  chooseConsoleAnswer(remote.consolePractice, questions[299].answer);
   checkConsoleAnswer(remote.consolePractice);
   remote.course.last = 'arrays';
   const merged = cleanProgress(mergeProgress(base, local, remote));
   assert.deepEqual(consoleStats(merged.consolePractice), { answered: 2, solved: 2 });
-  assert.equal(merged.consolePractice.current, 199);
+  assert.equal(merged.consolePractice.current, 299);
   assert.equal(merged.course.last, 'arrays');
 });
 
@@ -137,8 +142,8 @@ test('rendering hides explanations until checked and handles the first and last 
     checkConsoleAnswer(state);
   }
   html = renderConsolePractice(state, escape, escape, 'Saved locally.');
-  assert.ok(html.includes('All 200 predictions correct!'));
-  assert.ok(!html.includes('data-console-go="200"'));
+  assert.ok(html.includes('All 300 predictions correct!'));
+  assert.ok(!html.includes('data-console-go="300"'));
   assert.ok(html.includes('data-console-review'));
 });
 
@@ -153,17 +158,44 @@ test('a completed original set survives restore and continues from question 100 
   assert.deepEqual(restored, previous);
   const state = restored.consolePractice;
   const html = renderConsolePractice(state, String, String, 'Saved.');
-  assert.match(html, /QUESTION 100 \/ 200/);
+  assert.match(html, /QUESTION 100 \/ 300/);
   assert.match(html, /data-console-go="100" >Next question/);
-  assert.match(html, /aria-valuemax="200" aria-valuenow="100"/);
-  assert.match(html, /style="width:50%"/);
+  assert.match(html, /aria-valuemax="300" aria-valuenow="100"/);
+  assert.match(html, /style="width:33\.333/);
   assert.ok(!html.includes('class="console-complete"'));
   state.current = 100;
   chooseConsoleAnswer(state, questions[100].answer);
   checkConsoleAnswer(state);
   const advancedHtml = renderConsolePractice(state, String, String, 'Saved.');
-  assert.match(advancedHtml, /QUESTION 101 \/ 200/);
-  assert.match(advancedHtml, /LEVEL 11 OF 20/);
+  assert.match(advancedHtml, /QUESTION 101 \/ 300/);
+  assert.match(advancedHtml, /LEVEL 11 OF 30/);
   assert.match(advancedHtml, /data-console-go="99" >← Previous/);
   assert.deepEqual(consoleStats(cleanConsoleProgress(state)), { answered: 101, solved: 101 });
+});
+
+test('the completed 200-question edition restores intact and continues to question 201', () => {
+  const progress = freshProgress();
+  for (const question of questions.slice(0, 200)) {
+    progress.consolePractice.current = question.number - 1;
+    chooseConsoleAnswer(progress.consolePractice, question.answer);
+    checkConsoleAnswer(progress.consolePractice);
+  }
+  const restored = cleanProgress(JSON.parse(JSON.stringify(progress)));
+  assert.deepEqual(restored, progress);
+  const state = restored.consolePractice;
+  const before = renderConsolePractice(state, String, String, 'Saved.');
+  assert.match(before, /QUESTION 200 \/ 300/);
+  assert.match(before, /data-console-go="200" >Next question/);
+  assert.match(before, /Try questions 201–300/);
+  assert.match(before, /aria-valuemax="300" aria-valuenow="200"/);
+  assert.match(before, /style="width:66\.666/);
+  assert.ok(!before.includes('class="console-complete"'));
+  state.current = 200;
+  chooseConsoleAnswer(state, questions[200].answer);
+  checkConsoleAnswer(state);
+  const after = renderConsolePractice(state, String, String, 'Saved.');
+  assert.match(after, /QUESTION 201 \/ 300/);
+  assert.match(after, /LEVEL 21 OF 30/);
+  assert.match(after, /data-console-go="199" >← Previous/);
+  assert.deepEqual(consoleStats(cleanConsoleProgress(state)), { answered: 201, solved: 201 });
 });

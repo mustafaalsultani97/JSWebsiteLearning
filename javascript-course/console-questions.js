@@ -2,6 +2,7 @@
 // All outputs are text/primitives, or explicitly joined/stringified collections,
 // so the answers do not depend on a browser's object inspector formatting.
 import { addAdvancedConsoleQuestions } from './console-questions-advanced.js';
+import { addExpertConsoleQuestions } from './console-questions-expert.js';
 export const CONSOLE_LEVELS = [
   'First outputs', 'Values & decisions', 'Strings & arrays', 'Loops & tracing',
   'Functions', 'Array transformations', 'Objects & references', 'Scope & closures',
@@ -9,6 +10,10 @@ export const CONSOLE_LEVELS = [
   'Async control flow', 'Data reshaping', 'Coercion & evaluation',
   'Reference & property rules', 'Closure & function patterns', 'Classes & inheritance',
   'Iterators & generators', 'Async composition', 'Recursive algorithms', 'Mixed mastery',
+  'Iteration under mutation', 'Descriptors & interception', 'Construction & binding',
+  'Generator protocols', 'Promise job ordering', 'Async coordination',
+  'Graph traversal & caching', 'Dynamic programming & search',
+  'Representation & serialization', 'Expert integration',
 ];
 
 const questions = [];
@@ -245,4 +250,5 @@ q('Trace shared state across await', 'async function run() {\n  let total = 0;\n
   'All three callbacks save snapshot = 0 before their first await. They then resume in order, assigning total to 1, 2 and 3, rather than accumulating. Each returns its own assigned number, and the final total is 3.');
 
 addAdvancedConsoleQuestions(q);
+addExpertConsoleQuestions(q);
 export const CONSOLE_QUESTIONS = questions;

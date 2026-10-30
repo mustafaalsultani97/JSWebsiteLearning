@@ -31,7 +31,7 @@ export function consolePracticeCard(progress) {
   return `<section class="console-invite" aria-label="Another way to learn">
     <div><span class="welcome-label">ANOTHER WAY TO LEARN</span><h2>Predict the console</h2>
     <p>Read the code. Think it through. Choose A, B, C or D. Build your understanding with ${questions.length} increasingly challenging JavaScript examples.</p>
-    <span class="subtle">${stats.answered ? `${stats.answered}/${questions.length} answered · ${stats.solved} correct` : `${levels.length} levels · Beginner to advanced · Explained answers`}</span></div>
+    <span class="subtle">${stats.answered ? `${stats.answered}/${questions.length} answered · ${stats.solved} correct` : `${levels.length} levels · Beginner to expert · Explained answers`}</span></div>
     <button class="btn course-primary" data-view="console">${stats.answered || Object.keys(progress.answers).length ? 'Continue predicting' : 'Try a prediction'} <span aria-hidden="true">→</span></button>
   </section>`;
 }
@@ -53,7 +53,7 @@ export function renderConsolePractice(progress, escape, highlight, storageNote) 
       <div class="console-level"><span>LEVEL ${question.level + 1} OF ${levels.length}</span><strong>${escape(levels[question.level])}</strong></div>
       <div class="progress-track" role="progressbar" aria-label="Console questions answered" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${stats.answered}"><div style="width:${stats.answered / total * 100}%"></div></div>
     </div>
-    ${progress.current < 100 ? '<div class="course-actions"><button class="btn" data-console-go="100">Try questions 101–200 →</button></div>' : ''}
+    ${progress.current < 200 ? `<div class="course-actions">${progress.current < 100 ? '<button class="btn" data-console-go="100">Try questions 101–200 →</button>' : ''}<button class="btn" data-console-go="200">Try questions 201–300 →</button></div>` : ''}
     ${stats.answered === total ? `<section class="console-complete"><h2>${stats.solved === total ? `All ${total} predictions correct!` : `You reached the end of all ${total} examples.`}</h2><p>${stats.solved === total ? 'From your first message to async code and shared state. Revisit any question to keep practising.' : `${stats.solved} correct, with ${total - stats.solved} to revisit. Review the explanations and try those questions again.`}</p>${stats.solved < total ? '<button class="btn" data-console-review>Review a missed question →</button>' : ''}</section>` : ''}
     <div class="console-question-nav"><label for="console-jump">Jump to a question</label><select id="console-jump">${levels.map((level, index) => `<optgroup label="Level ${index + 1} · ${escape(level)}">${questions.filter(q => q.level === index).map(q => {
       const saved = progress.answers[q.id];
