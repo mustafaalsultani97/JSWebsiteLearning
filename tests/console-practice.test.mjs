@@ -123,7 +123,7 @@ test('a concurrent retry keeps the earned correct result and the draft as one at
   assert.deepEqual(merged.consolePractice.answers['console-001'], { choice: 2, submitted: false, solved: true });
 });
 
-test('rendering hides explanations until checked and handles the first and last questions', () => {
+test('rendering explains both wrong and correct answers and handles the first and last questions', () => {
   const escape = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
   const state = freshConsoleProgress();
   let html = renderConsolePractice(state, escape, escape, 'Saved locally.');
@@ -131,9 +131,17 @@ test('rendering hides explanations until checked and handles the first and last 
   assert.ok(!html.includes('id="console-feedback"'));
   assert.match(html, /data-console-go="-1" disabled/);
   assert.match(html, /data-console-go="1" disabled/);
+  chooseConsoleAnswer(state, (questions[0].answer + 1) % 4);
+  checkConsoleAnswer(state);
+  html = renderConsolePractice(state, escape, escape, 'Saved locally.');
+  assert.match(html, /Not quite\. The answer is B\./);
+  assert.ok(html.includes(`<pre class="console-expected-output">${escape(questions[0].choices[questions[0].answer])}</pre>`));
+  assert.ok(html.includes(`<h4>Why this output?</h4><p class="console-explanation">${escape(questions[0].explanation)}</p>`));
+  state.answers[questions[0].id] = { choice: null, submitted: false, solved: false };
   chooseConsoleAnswer(state, questions[0].answer);
   checkConsoleAnswer(state);
   html = renderConsolePractice(state, escape, escape, 'Saved locally.');
+  assert.match(html, /✓ You got it\./);
   assert.ok(html.includes(escape(questions[0].explanation)));
   assert.match(html, /data-console-go="1" >Next/);
   for (const q of questions) {

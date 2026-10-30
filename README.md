@@ -22,6 +22,9 @@ graphs, dynamic programming, serialization, and combined dependency/cache traces
 A second shortcut starts at 201. Each snippet has four choices and an explained
 answer, with deterministic output and no network, clock or randomness dependency.
 Previous, next, and a question picker support review; missed answers can be retried.
+Every snippet has a **Copy code** button for pasting the JavaScript into an editor
+or console. Checking either a correct or wrong answer brings a feedback panel
+into view with the actual console output and a **Why this output?** explanation.
 A summary appears after all 300
 questions are answered. Correct predictions remain credited when practising again.
 

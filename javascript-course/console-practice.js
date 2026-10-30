@@ -62,7 +62,7 @@ export function renderConsolePractice(progress, escape, highlight, storageNote) 
     <article class="console-challenge">
       <div class="console-question-title"><span class="welcome-label">QUESTION ${question.number} / ${total}</span><h2 id="console-question-heading" tabindex="-1">${escape(question.title)}</h2></div>
       <p class="console-instructions">What will this code print? Read the whole snippet, then choose one output.</p>
-      <div class="console-code"><div class="code-tab"><strong>predict.js</strong><span>JavaScript</span></div><pre tabindex="0" aria-label="JavaScript code to predict"><code>${highlight(question.code)}</code></pre></div>
+      <div class="console-code"><div class="code-tab"><strong>predict.js</strong><div class="console-code-actions"><span>JavaScript</span><button class="btn" type="button" data-console-copy>Copy code</button></div></div><pre tabindex="0" aria-label="JavaScript code to predict"><code>${highlight(question.code)}</code></pre></div>
       <p class="console-format">Each output line represents one console.log call. Multiple values on one line are separated by spaces. String quotes are not printed.</p>
       <form id="console-answer-form"><fieldset class="console-choices"><legend>Choose the console output</legend>${question.choices.map((choice, index) => `<label class="console-choice ${submitted && index === question.answer ? 'is-correct' : submitted && state.choice === index ? 'is-wrong' : ''}">
         <input type="radio" name="console-answer" value="${index}" ${state?.choice === index ? 'checked' : ''} ${submitted ? 'disabled' : ''}>
@@ -70,13 +70,13 @@ export function renderConsolePractice(progress, escape, highlight, storageNote) 
         ${submitted && index === question.answer ? '<span class="console-choice-result">✓ Correct answer</span>' : submitted && state.choice === index ? '<span class="console-choice-result">Your answer</span>' : ''}
       </label>`).join('')}</fieldset>
       <div class="console-check-actions"><button class="btn course-primary" id="console-check" type="submit" ${submitted ? 'disabled' : ''}>Check answer</button>${submitted ? '<button class="btn" type="button" data-console-retry>Try this question again</button>' : ''}<span id="console-notice" role="status"></span></div></form>
-      ${submitted ? `<section class="console-feedback ${correct ? 'is-correct' : 'is-wrong'}" id="console-feedback" tabindex="-1" aria-labelledby="console-feedback-title"><h3 id="console-feedback-title">${correct ? '✓ You got it.' : `Not quite. The answer is ${letter(question.answer)}.`}</h3><p>${escape(question.explanation)}</p></section>` : ''}
+      ${submitted ? `<section class="console-feedback ${correct ? 'is-correct' : 'is-wrong'}" id="console-feedback" tabindex="-1" aria-labelledby="console-feedback-title"><h3 id="console-feedback-title">${correct ? '✓ You got it.' : `Not quite. The answer is ${letter(question.answer)}.`}</h3><p class="console-output-label">Console output · Answer ${letter(question.answer)}</p><pre class="console-expected-output">${escape(question.choices[question.answer])}</pre><h4>Why this output?</h4><p class="console-explanation">${escape(question.explanation)}</p></section>` : ''}
       <nav class="console-bottom" aria-label="Console question navigation"><button class="btn" data-console-go="${question.number - 2}" ${question.number === 1 ? 'disabled' : ''}>← Previous</button><span class="subtle">${question.number} of ${total}</span>${question.number < total ? `<button class="btn course-primary" data-console-go="${question.number}" ${!submitted && !state?.solved ? 'disabled' : ''}>Next question →</button>` : '<button class="btn" data-console-review>Review questions →</button>'}</nav>
     </article><p class="course-storage">${escape(storageNote)} Your lesson progress is tracked separately.</p>
   </section>`;
 }
 
-export function bindConsolePractice({ getProgress, active, persist, render }) {
+export function bindConsolePractice({ getProgress, active, persist, render, copyText }) {
   function redraw(target = '#console-question-heading') {
     persist();
     render();
@@ -100,7 +100,10 @@ export function bindConsolePractice({ getProgress, active, persist, render }) {
   document.addEventListener('submit', event => {
     if (!active() || event.target.id !== 'console-answer-form') return;
     event.preventDefault();
-    if (checkConsoleAnswer(getProgress())) redraw('#console-feedback');
+    if (checkConsoleAnswer(getProgress())) {
+      redraw('#console-feedback');
+      document.querySelector('#console-feedback')?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }
     else if (!getProgress().answers[questions[getProgress().current].id]?.submitted) {
       document.querySelector('#console-notice').textContent = 'Choose A, B, C or D before checking.';
       document.querySelector('[name="console-answer"]')?.focus();
@@ -110,6 +113,10 @@ export function bindConsolePractice({ getProgress, active, persist, render }) {
     if (!active()) return;
     const button = event.target.closest('button');
     if (!button || button.disabled) return;
+    if (button.hasAttribute('data-console-copy')) {
+      copyText(questions[getProgress().current].code);
+      return;
+    }
     if (button.hasAttribute('data-console-go')) go(Number(button.dataset.consoleGo));
     if (button.hasAttribute('data-console-retry')) {
       const progress = getProgress();

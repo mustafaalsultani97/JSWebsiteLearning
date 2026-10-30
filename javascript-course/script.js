@@ -5432,7 +5432,7 @@ window.addEventListener("pagehide", () => {
 */
 bindConsolePractice({ getProgress: () => progress.consolePractice,
   active: () => currentView === 'console' && !query && !accounts?.loading,
-  persist, render });
+  persist, render, copyText });
 applySettings();
 updateProgress();
 const initial = readHash();
