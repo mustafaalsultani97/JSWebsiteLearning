@@ -12,7 +12,8 @@
 */
 
 import { createAccounts } from './accounts.js';
-import { cleanExtraProgress, isExtraId, mergeExtraProgress } from '../shared/progress.js';
+import { cleanExtraProgress, isExtraId, mergeExtraProgress, freshConsoleProgress, cleanConsoleProgress, mergeConsoleProgress } from '../shared/progress.js';
+import { renderConsolePractice, consolePracticeCard, consoleStats, bindConsolePractice } from './console-practice.js';
 import { createCheckObserver, executePracticeChecks, explainPracticeError, feedbackForResult, timeoutFeedback } from './practice-feedback.js';
 /* 1. COURSE CONTENT — authored lessons live in lessons/, grouped by topic. */
 import { COURSE, lessonProgressKey, lessonProgressKeys, initialLessonCode, hasLessonWork } from "./lessons/index.js";
@@ -3882,6 +3883,7 @@ let progress = {
   done: [],
   settings: { size: "standard", theme: "dark", spacing: "roomy" },
   course: freshCourse(),
+  consolePractice: freshConsoleProgress(),
 };
 try {
   const existing = JSON.parse(localStorage.getItem(KEY));
@@ -3903,6 +3905,7 @@ function validateProgress(value) {
   return {
     version: 1,
     course: validateCourse(value.course),
+    consolePractice: (() => { try { return cleanConsoleProgress(value.consolePractice); } catch { return freshConsoleProgress(); } })(),
     saved: [
       ...new Set(
         value.saved.filter((x) => typeof x === "string" && cardsById.has(x)),
@@ -4106,6 +4109,7 @@ function render() {
   const showCourse = isCourseView() && !query;
   document.body.classList.toggle("course-mode", showCourse);
   document.body.classList.toggle("start-mode", currentView === "start" && !query);
+  document.body.classList.toggle("console-mode", currentView === "console" && !query);
   updateCourseBadge();
   document.querySelectorAll("[data-view]").forEach((b) => {
     if (
@@ -4118,6 +4122,13 @@ function render() {
   });
   if (currentView === "start" && !query) {
     view.innerHTML = renderStart();
+    return;
+  }
+  if (currentView === "console" && !query) {
+    const storageNote = !storageOK ? 'Storage is unavailable. Download a backup in Settings before leaving.'
+      : accounts?.signedIn ? 'Your predictions are saved with your account. Check the toolbar for sync status.'
+      : 'Your predictions are saved in this browser. Sign in to save across devices.';
+    view.innerHTML = renderConsolePractice(progress.consolePractice, escapeHTML, highlight, storageNote);
     return;
   }
   if (showCourse) {
@@ -4263,6 +4274,7 @@ function navigate(id, hash = true) {
   }
   render();
   if (currentView === "start") $("#welcome-heading")?.focus({ preventScroll: true });
+  if (currentView === "console") $("#console-heading")?.focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 let searchTimer;
@@ -4549,6 +4561,7 @@ $("#import-file").addEventListener("change", async (e) => {
     progress.done = [...new Set([...progress.done, ...incoming.done])];
     progress.settings = incoming.settings;
     progress.course = mergeCourse(incoming.course);
+    progress.consolePractice = mergeConsoleProgress(freshConsoleProgress(), incoming.consolePractice, progress.consolePractice);
     persist();
     applySettings();
     render();
@@ -4706,7 +4719,7 @@ function mergeCourse(incoming) {
 function validView(id) {
   return (
     DATA.some((s) => s.id === id) ||
-    ["start", "course", "home", "saved", "all"].includes(id) ||
+    ["start", "course", "console", "home", "saved", "all"].includes(id) ||
     COURSE.lessons.some((l) => "lesson-" + l.id === id)
   );
 }
@@ -4716,6 +4729,8 @@ function activeLesson() {
 function updateCourseBadge() {
   const badge = document.getElementById("course-count");
   if (badge) badge.textContent = courseCount() + "/" + COURSE.lessons.length;
+  const consoleBadge = document.getElementById('console-count');
+  if (consoleBadge) consoleBadge.textContent = consoleStats(progress.consolePractice).solved + '/100';
 }
 function isCourseView() {
   return currentView === "course" || !!activeLesson();
@@ -4788,6 +4803,7 @@ function renderStart() {
       </ol>
     </section>
 
+    ${consolePracticeCard(progress.consolePractice)}
     <section class="welcome-curriculum" aria-labelledby="welcome-curriculum-heading">
       <div class="welcome-section-heading"><div><span class="welcome-label">YOUR LEARNING PATH</span><h2 id="welcome-curriculum-heading">Start small. Build on it.</h2></div><button class="btn" data-view="course">See all ${total} lessons <span aria-hidden="true">→</span></button></div>
       <div class="welcome-units">${COURSE.modules.map((unit, index) => {
@@ -4822,6 +4838,7 @@ function courseDashboard() {
   );
   return `<section class="course-hero"><div class="course-kicker">Your guided JavaScript course</div><h1>Small lessons.<br><span class="soft">Real understanding.</span></h1><p class="lead">Learn the idea, write the code, then check what sticks.<br>A hands-on path built from your ${COURSE.modules.length} class websites.</p><div class="course-actions"><button class="btn course-primary" data-lesson="${next.id}">${done === total ? "Revisit the course" : started ? "Continue learning" : "Start learning"} <span aria-hidden="true">→</span></button><button class="btn" data-view="home">Open reference guide</button></div><div class="course-meta"><span><strong>${total}</strong> guided lessons</span><span><strong>${total}</strong> practice activities</span><span><strong>${COURSE.lessons.reduce((n, l) => n + l.quiz.length, 0)}</strong> quiz questions</span><span>English + Swedish terms</span></div></section>
   ${previousCourseNotice()}
+  ${consolePracticeCard(progress.consolePractice)}
   <section class="course-summary" aria-label="Course progress"><div><h2>${done === total ? "Course completed" : "Your learning journey"}</h2><p>${done} of ${total} lessons complete · Read both pages, pass practice, and score 3/3 on the quiz.</p></div><div class="course-percent">${pct}%</div><div class="progress-track" role="progressbar" aria-label="Lesson completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div style="width:${pct}%"></div></div></section>
   ${done === total ? `<section class="course-finished"><h2>You built a strong foundation.</h2><p>You completed all ${total} lessons, from the basics to higher-order functions and refactoring. Revisit any exercise, try different inputs, or use the reference guide for your next project.</p></section>` : ""}
   ${COURSE.modules
@@ -5413,6 +5430,9 @@ window.addEventListener("pagehide", () => {
 /* 12. START THE APP
   Apply saved reading preferences, update counters, and open the requested page.
 */
+bindConsolePractice({ getProgress: () => progress.consolePractice,
+  active: () => currentView === 'console' && !query && !accounts?.loading,
+  persist, render });
 applySettings();
 updateProgress();
 const initial = readHash();
@@ -5433,7 +5453,7 @@ accounts = createAccounts({
         }
         }
       }
-      return guest.saved.length || guest.done.length || Object.keys(guest.course.lessons).length ? guest : null;
+      return guest.saved.length || guest.done.length || Object.keys(guest.course.lessons).length || Object.keys(guest.consolePractice.answers).length ? guest : null;
     } catch { return null; }
   },
   applyProgress(value, { resume }) {
@@ -5446,7 +5466,7 @@ accounts = createAccounts({
     applySettings();
     updateProgress();
     updateCourseBadge();
-    if (resume && currentView !== 'start') navigate('lesson-' + progress.course.last);
+    if (resume && currentView !== 'start' && currentView !== 'console') navigate('lesson-' + progress.course.last);
     else render();
     if (editorFocused && $('#course-editor')) {
       $('#course-editor').focus();

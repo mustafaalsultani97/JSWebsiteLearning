@@ -1426,6 +1426,73 @@ body.start-mode > .shell .footer { display: none; }
   .lesson-understanding { padding: 20px; }
 }
 
+/* Predict the console: an independent, progressively harder practice path. */
+.console-nav { margin-bottom: 14px; }
+.console-nav strong { font-size: 14px; }
+body.console-mode .content { max-width: 1180px; }
+body.console-mode .footer { display: none; }
+.console-invite { display: flex; justify-content: space-between; align-items: center; gap: 28px; padding: 28px; margin-top: 32px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 12px; background: var(--panel); }
+.console-invite h2 { font-size: 25px; line-height: 1.3; }
+.console-invite p { max-width: 650px; margin: 10px 0; font-size: 15px; color: var(--muted); }
+.console-invite > .btn { flex-shrink: 0; }
+.console-invite .subtle { font-size: 12px; }
+.console-heading { padding: 12px 0 26px; }
+.console-heading h1 { font-size: clamp(32px, 4vw, 48px); letter-spacing: -.035em; line-height: 1.2; }
+.console-heading .lead { font-size: 17px; margin-top: 16px; max-width: 640px; }
+.console-overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.console-overview > div > strong { font-size: 24px; color: var(--mint); }
+.console-overview strong > span, .console-overview p { font-size: 13px; font-weight: 400; color: var(--muted); }
+.console-overview .console-level { display: grid; text-align: right; gap: 4px; }
+.console-level > span { font-size: 10px; letter-spacing: .12em; color: var(--muted); }
+.console-overview .console-level > strong { font-size: 15px; color: var(--text); }
+.console-overview .progress-track { flex-basis: 100%; margin: 0; }
+.console-question-nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 26px 0; font-size: 13px; }
+.console-question-nav select { max-width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); }
+.console-question-title h2 { font-size: clamp(24px, 3vw, 32px); line-height: 1.3; }
+.console-instructions { font-size: 16px; color: var(--muted); margin: 14px 0 20px; }
+.console-code { overflow: hidden; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.console-code pre { margin: 0; padding: 22px 26px; overflow-x: auto; font: 15px/1.8 Consolas, monospace; }
+.console-code code { font: inherit; background: none; padding: 0; white-space: pre; }
+.console-format { color: var(--muted); font-size: 12px; margin: 12px 0 24px; }
+.console-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.console-choices legend { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.console-choice { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; }
+.console-choice:hover, .console-choice:has(input:checked) { border-color: var(--accent); background: var(--raised); }
+.console-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.console-choice:has(input:disabled) { cursor: default; }
+.console-choice input { margin: 7px 0 0; accent-color: var(--accent); width: 16px; height: 16px; }
+.console-letter { display: grid; place-items: center; width: 29px; height: 29px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.console-choice pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.8 Consolas, monospace; margin: 2px 0 0; }
+.console-choice-result { grid-column: 3; font-size: 12px; color: var(--muted); }
+.console-choice.is-correct, .console-choice.is-correct:has(input:checked) { border-color: var(--mint); }
+.console-choice.is-correct .console-choice-result { color: var(--mint); }
+.console-choice.is-wrong, .console-choice.is-wrong:has(input:checked) { border-color: var(--gold); }
+.console-check-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 22px 0; }
+#console-notice { color: var(--gold); font-size: 13px; }
+.console-feedback, .console-complete { padding: 22px 26px; border: 1px solid var(--line); border-left: 3px solid var(--mint); border-radius: 10px; background: var(--panel); margin: 22px 0; }
+.console-feedback.is-wrong { border-left-color: var(--gold); }
+.console-feedback h3, .console-complete h2 { font-size: 20px; margin-bottom: 10px; }
+.console-feedback p, .console-complete p { color: var(--muted); font-size: 16px; line-height: 1.8; }
+.console-complete .btn { margin-top: 16px; }
+.console-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 24px; margin-top: 24px; border-top: 1px solid var(--line); }
+.console-bottom .subtle { font-size: 12px; }
+.console-practice .btn:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 1000px) {
+  .console-invite { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 760px) {
+  .console-choices { grid-template-columns: 1fr; }
+  .console-question-nav { flex-direction: column; align-items: stretch; gap: 8px; }
+  .console-question-nav select { width: 100%; }
+  .console-overview { padding: 18px; }
+  .console-overview .console-level { text-align: left; }
+  .console-code pre { padding: 18px; font-size: 13px; }
+  .console-choice { padding: 15px; }
+  .console-bottom { flex-wrap: wrap; }
+  .console-bottom .btn { font-size: 12px; padding-inline: 12px; }
+  .console-invite, .console-feedback, .console-complete { padding: 20px; }
+}
+
 /* 6. Guided course: dashboard, lessons, code editor and quizzes */
 .course-nav {
   border-color: var(--line);

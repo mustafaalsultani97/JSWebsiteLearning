@@ -108,6 +108,32 @@ test('two devices save concurrently without losing the other device’s lesson',
   assert.equal(cloud.course.last, 'variables');
 });
 
+test('console answers survive account saves, concurrent devices, reloads and account separation', async t => {
+  const h = harness();
+  const a = client(h).sync, b = client(h).sync;
+  t.after(() => { a.close(); b.close(); });
+  await Promise.all([a.flush(), b.flush()]);
+  const first = freshProgress(), second = example();
+  first.consolePractice.answers['console-001'] = { choice: 1, submitted: true, solved: true };
+  second.consolePractice.current = 99;
+  second.consolePractice.answers['console-100'] = { choice: 3, submitted: true, solved: true };
+  a.save(first); b.save(second);
+  assert.deepEqual(await Promise.all([a.flush(), b.flush()]), [true, true]);
+  const restored = client(h).sync;
+  t.after(() => restored.close());
+  await restored.flush();
+  assert.equal(restored.progress.consolePractice.current, 99);
+  assert.deepEqual(restored.progress.consolePractice.answers, {
+    ...first.consolePractice.answers, ...second.consolePractice.answers,
+  });
+  assert.equal(restored.progress.course.lessons.variables.code, 'let score = 1;');
+  h.setUser({ id: 'bob' });
+  const bob = client(h, 'bob').sync;
+  t.after(() => bob.close());
+  await bob.flush();
+  assert.deepEqual(bob.progress.consolePractice.answers, {});
+});
+
 test('an offline draft survives closing and is merged after reconnecting', async t => {
   const h = harness(), storage = memoryStorage();
   const a = client(h, 'alice', storage).sync;

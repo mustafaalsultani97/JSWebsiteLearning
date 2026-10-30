@@ -1,6 +1,7 @@
 # JavaScript Learning Course
 
-21 lessons, coding exercises, 63 quiz questions, and a searchable reference library.
+21 lessons, coding exercises, 63 lesson quiz questions, 100 console predictions,
+and a searchable reference library.
 Lessons are in English with key Swedish terms.
 
 The website opens on **Home** (`#start`), with a course introduction, a runnable
@@ -8,6 +9,20 @@ example, a four-unit overview, and a Start learning or Continue learning button.
 The JS logo and Home button return here. Learning path (`#course`) lists every
 lesson; Reference desk (`#home`) keeps its existing address. Returning to Home
 preserves the current lesson and step, including after account progress loads.
+
+**Predict the console** (`#console`) is a separate learning method directly below
+Home and Learning path in the sidebar, with entry cards on both pages. Learners
+read 100 distinct JavaScript snippets, choose A–D, then check the output and read
+the explanation. Ten levels build from simple messages to loops, functions,
+references, closures and async execution. Previous, next, and a question picker
+support review; missed answers can be retried. A summary appears after all 100
+questions are answered. Correct predictions remain credited when practising again.
+
+The selected question, draft answer and checked results are included in guest
+storage, account synchronization and progress backups, independently of lessons.
+Authored questions live in `javascript-course/console-questions.js`; keep their
+IDs and answer order stable. `npm test` executes all 100 snippets to verify the
+answer key and checks progress validation, merging and answer/retry behavior.
 
 ## How the lessons teach
 

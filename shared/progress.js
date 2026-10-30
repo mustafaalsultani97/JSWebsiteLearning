@@ -6,7 +6,35 @@ export const freshProgress = () => ({
   version: 1, saved: [], done: [],
   settings: { size: 'standard', theme: 'dark', spacing: 'roomy' },
   course: { last: 'first-program', lessons: {} },
+  consolePractice: freshConsoleProgress(),
 });
+
+export const freshConsoleProgress = () => ({ current: 0, answers: {} });
+export function cleanConsoleProgress(value = freshConsoleProgress()) {
+  requireValue(object(value) && integer(value.current, 99) && object(value.answers)
+    && Object.keys(value.answers).length <= 100);
+  const answers = {};
+  for (const [key, state] of Object.entries(value.answers)) {
+    requireValue(/^console-(00[1-9]|0[1-9][0-9]|100)$/.test(key) && object(state)
+      && (state.choice === null || integer(state.choice, 3))
+      && typeof state.submitted === 'boolean' && typeof state.solved === 'boolean');
+    answers[key] = { choice: state.choice, submitted: state.submitted && state.choice !== null, solved: state.solved };
+  }
+  return { current: value.current, answers };
+}
+
+export function mergeConsoleProgress(base = freshConsoleProgress(), local = freshConsoleProgress(), remote = freshConsoleProgress()) {
+  const out = copy(remote);
+  out.current = pick(base.current, local.current, remote.current);
+  for (const key of new Set([...Object.keys(base.answers), ...Object.keys(local.answers)])) {
+    const b = base.answers[key], l = local.answers[key], r = remote.answers[key];
+    if (equal(b, l)) continue;
+    if (!l) { delete out.answers[key]; continue; }
+    const attempt = state => state ? { choice: state.choice, submitted: state.submitted } : undefined;
+    out.answers[key] = r ? { ...pick(attempt(b), attempt(l), attempt(r)), solved: l.solved || r.solved } : copy(l);
+  }
+  return out;
+}
 
 const object = (v) => v && typeof v === 'object' && !Array.isArray(v);
 const id = (v) => typeof v === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(v);
@@ -38,6 +66,7 @@ export function cleanExtraProgress(value = {}) {
 export function cleanProgress(value) {
   requireValue(object(value) && value.version === 1);
   const out = freshProgress();
+  out.consolePractice = cleanConsoleProgress(value.consolePractice);
   out.saved = ids(value.saved);
   out.done = ids(value.done);
   const s = value.settings;
@@ -99,6 +128,7 @@ export function mergeExtraProgress(base = {}, local = {}, remote = {}) {
 // from different devices are combined. Explicit removals are kept as removals.
 export function mergeProgress(base, local, remote) {
   const out = copy(remote);
+  out.consolePractice = mergeConsoleProgress(base.consolePractice, local.consolePractice, remote.consolePractice);
   out.saved = mergeSet(base.saved, local.saved, remote.saved);
   out.done = mergeSet(base.done, local.done, remote.done);
   for (const key of ['size', 'theme', 'spacing']) {
