@@ -1,16 +1,20 @@
 // Keep IDs, answer order and existing questions stable: progress is saved by ID.
 // All outputs are text/primitives, or explicitly joined/stringified collections,
 // so the answers do not depend on a browser's object inspector formatting.
+import { addAdvancedConsoleQuestions } from './console-questions-advanced.js';
 export const CONSOLE_LEVELS = [
   'First outputs', 'Values & decisions', 'Strings & arrays', 'Loops & tracing',
   'Functions', 'Array transformations', 'Objects & references', 'Scope & closures',
   'Advanced patterns', 'Async & mixed challenges',
+  'Async control flow', 'Data reshaping', 'Coercion & evaluation',
+  'Reference & property rules', 'Closure & function patterns', 'Classes & inheritance',
+  'Iterators & generators', 'Async composition', 'Recursive algorithms', 'Mixed mastery',
 ];
 
 const questions = [];
 function q(title, code, output, distractors, explanation) {
   const number = questions.length + 1;
-  // Balanced but varied correct-answer positions across the 100 questions.
+  // Balanced but varied correct-answer positions, stable across expansions.
   const positions = [1, 3, 0, 2, 2, 0, 3, 1, 0, 3, 1, 2, 3, 2, 1, 0, 1, 0, 2, 3];
   const answer = positions[(number - 1) % positions.length];
   const choices = [...distractors];
@@ -240,4 +244,5 @@ q('Finally preserves a fulfilled value', 'Promise.resolve(2)\n  .then(n => n * 3
 q('Trace shared state across await', 'async function run() {\n  let total = 0;\n  const jobs = [1, 2, 3].map(async n => {\n    const snapshot = total;\n    await Promise.resolve();\n    total = snapshot + n;\n    return total;\n  });\n  const values = await Promise.all(jobs);\n  console.log(values.join(","));\n  console.log(total);\n}\nrun();', '1,2,3\n3', ['1,3,6\n6', '1,2,3\n6', '3,3,3\n3'],
   'All three callbacks save snapshot = 0 before their first await. They then resume in order, assigning total to 1, 2 and 3, rather than accumulating. Each returns its own assigned number, and the final total is 3.');
 
+addAdvancedConsoleQuestions(q);
 export const CONSOLE_QUESTIONS = questions;

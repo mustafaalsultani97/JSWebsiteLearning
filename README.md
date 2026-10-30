@@ -1,6 +1,6 @@
 # JavaScript Learning Course
 
-21 lessons, coding exercises, 63 lesson quiz questions, 100 console predictions,
+21 lessons, coding exercises, 63 lesson quiz questions, 200 console predictions,
 and a searchable reference library.
 Lessons are in English with key Swedish terms.
 
@@ -12,16 +12,20 @@ preserves the current lesson and step, including after account progress loads.
 
 **Predict the console** (`#console`) is a separate learning method directly below
 Home and Learning path in the sidebar, with entry cards on both pages. Learners
-read 100 distinct JavaScript snippets, choose A–D, then check the output and read
-the explanation. Ten levels build from simple messages to loops, functions,
-references, closures and async execution. Previous, next, and a question picker
-support review; missed answers can be retried. A summary appears after all 100
+read 200 distinct JavaScript snippets, choose A–D, then check the output and read
+the explanation. Twenty levels build from simple messages to loops, functions,
+references, closures, generators, recursive algorithms and async execution.
+Questions 101–200 continue the original sequence, with a shortcut to start at 101.
+Previous, next, and a question picker support review; missed answers can be retried.
+A summary appears after all 200
 questions are answered. Correct predictions remain credited when practising again.
 
 The selected question, draft answer and checked results are included in guest
 storage, account synchronization and progress backups, independently of lessons.
-Authored questions live in `javascript-course/console-questions.js`; keep their
-IDs and answer order stable. `npm test` executes all 100 snippets to verify the
+Authored questions live in `javascript-course/console-questions.js` (1–100) and
+`javascript-course/console-questions-advanced.js` (101–200); keep their IDs and answer
+order stable. Existing progress for the first 100 is preserved. The shared progress
+schema accepts all 200 IDs. `npm test` executes all 200 snippets to verify the
 answer key and checks progress validation, merging and answer/retry behavior.
 
 ## How the lessons teach

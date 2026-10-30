@@ -13,7 +13,7 @@
 
 import { createAccounts } from './accounts.js';
 import { cleanExtraProgress, isExtraId, mergeExtraProgress, freshConsoleProgress, cleanConsoleProgress, mergeConsoleProgress } from '../shared/progress.js';
-import { renderConsolePractice, consolePracticeCard, consoleStats, bindConsolePractice } from './console-practice.js';
+import { renderConsolePractice, consolePracticeCard, consoleStats, bindConsolePractice, consoleQuestionCount } from './console-practice.js';
 import { createCheckObserver, executePracticeChecks, explainPracticeError, feedbackForResult, timeoutFeedback } from './practice-feedback.js';
 /* 1. COURSE CONTENT — authored lessons live in lessons/, grouped by topic. */
 import { COURSE, lessonProgressKey, lessonProgressKeys, initialLessonCode, hasLessonWork } from "./lessons/index.js";
@@ -4730,7 +4730,7 @@ function updateCourseBadge() {
   const badge = document.getElementById("course-count");
   if (badge) badge.textContent = courseCount() + "/" + COURSE.lessons.length;
   const consoleBadge = document.getElementById('console-count');
-  if (consoleBadge) consoleBadge.textContent = consoleStats(progress.consolePractice).solved + '/100';
+  if (consoleBadge) consoleBadge.textContent = consoleStats(progress.consolePractice).solved + '/' + consoleQuestionCount;
 }
 function isCourseView() {
   return currentView === "course" || !!activeLesson();

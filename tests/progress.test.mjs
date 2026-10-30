@@ -115,14 +115,14 @@ test('console answers survive account saves, concurrent devices, reloads and acc
   await Promise.all([a.flush(), b.flush()]);
   const first = freshProgress(), second = example();
   first.consolePractice.answers['console-001'] = { choice: 1, submitted: true, solved: true };
-  second.consolePractice.current = 99;
-  second.consolePractice.answers['console-100'] = { choice: 3, submitted: true, solved: true };
+  second.consolePractice.current = 199;
+  second.consolePractice.answers['console-200'] = { choice: 3, submitted: true, solved: true };
   a.save(first); b.save(second);
   assert.deepEqual(await Promise.all([a.flush(), b.flush()]), [true, true]);
   const restored = client(h).sync;
   t.after(() => restored.close());
   await restored.flush();
-  assert.equal(restored.progress.consolePractice.current, 99);
+  assert.equal(restored.progress.consolePractice.current, 199);
   assert.deepEqual(restored.progress.consolePractice.answers, {
     ...first.consolePractice.answers, ...second.consolePractice.answers,
   });

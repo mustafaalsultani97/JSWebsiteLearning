@@ -1,5 +1,6 @@
 // Shared by the browser and the server. No passwords or auth tokens belong here.
 export const MAX_PROGRESS_BYTES = 2_000_000;
+export const CONSOLE_QUESTION_COUNT = 200;
 export const copy = (value) => structuredClone(value);
 export const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const freshProgress = () => ({
@@ -11,11 +12,12 @@ export const freshProgress = () => ({
 
 export const freshConsoleProgress = () => ({ current: 0, answers: {} });
 export function cleanConsoleProgress(value = freshConsoleProgress()) {
-  requireValue(object(value) && integer(value.current, 99) && object(value.answers)
-    && Object.keys(value.answers).length <= 100);
+  requireValue(object(value) && integer(value.current, CONSOLE_QUESTION_COUNT - 1) && object(value.answers)
+    && Object.keys(value.answers).length <= CONSOLE_QUESTION_COUNT);
   const answers = {};
   for (const [key, state] of Object.entries(value.answers)) {
-    requireValue(/^console-(00[1-9]|0[1-9][0-9]|100)$/.test(key) && object(state)
+    const number = /^console-(\d{3})$/.exec(key)?.[1];
+    requireValue(number && Number(number) >= 1 && Number(number) <= CONSOLE_QUESTION_COUNT && object(state)
       && (state.choice === null || integer(state.choice, 3))
       && typeof state.submitted === 'boolean' && typeof state.solved === 'boolean');
     answers[key] = { choice: state.choice, submitted: state.submitted && state.choice !== null, solved: state.solved };
