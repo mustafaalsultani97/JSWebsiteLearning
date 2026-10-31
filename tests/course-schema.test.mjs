@@ -5,11 +5,10 @@ import vm from 'node:vm';
 import { cleanProgress, freshProgress, cleanExtraProgress, isExtraId } from '../shared/progress.js';
 import { lesson } from './helpers.mjs';
 import { COURSE, lessonProgressKeys, initialLessonCode, hasLessonWork } from '../javascript-course/lessons/index.js';
+import { REFERENCE_DATA as DATA } from '../javascript-course/reference/index.js';
 
 test('every existing lesson and reference bookmark fits the cloud progress schema', async () => {
   const source = await readFile(new URL('../javascript-course/script.js', import.meta.url), 'utf8');
-  // Read authored content literals without running the application or its DOM code.
-  const { DATA } = vm.runInNewContext(source.slice(source.indexOf('const DATA ='), source.indexOf('/* 3.')) + '\n({ DATA })');
   const progress = freshProgress();
   progress.saved = DATA.flatMap(section => section.cards.map(card => card.id));
   progress.done = [...progress.saved];
@@ -20,9 +19,9 @@ test('every existing lesson and reference bookmark fits the cloud progress schem
   }
   assert.equal(COURSE.lessons.length, 21);
   assert.equal(COURSE.lessons.reduce((n, item) => n + item.quiz.length, 0), 63);
-  assert.equal(progress.saved.length, 207);
+  assert.ok(progress.saved.length > 9000);
   const cleaned = cleanProgress(progress);
-  assert.equal(cleaned.saved.length, 207);
+  assert.equal(cleaned.saved.length, progress.saved.length);
   assert.equal(Object.keys(cleaned.course.lessons).length, 42);
   // Browser validation must also preserve both editions through account loads/backups.
   const validation = source.slice(source.indexOf('function freshCourse()'), source.indexOf('function lessonState('));

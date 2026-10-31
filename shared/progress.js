@@ -76,8 +76,9 @@ const integer = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
 function requireValue(valid) {
   if (!valid) throw new Error('Invalid progress data.');
 }
+export const MAX_REFERENCE_IDS = 12000;
 function ids(value) {
-  requireValue(Array.isArray(value) && value.length <= 1000 && value.every(id));
+  requireValue(Array.isArray(value) && value.length <= MAX_REFERENCE_IDS && value.every(id));
   return [...new Set(value)];
 }
 

@@ -2453,3 +2453,23 @@ body.course-mode .content {
 .noscript-message {
   padding: 32px;
 }
+/* Reference-only additions: bounded result pages and documentation metadata. */
+.reference-filters { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 22px; }
+.reference-filters label { display: grid; gap: 7px; color: var(--muted); font-size: .84rem; }
+.reference-filters select { min-width: 170px; max-width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); }
+.reference-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0; }
+.reference-pagination span { color: var(--muted); font-size: .85rem; }
+.reference-entry .card-title { overflow-wrap: anywhere; }
+.reference-entry .card-meta { flex-wrap: wrap; }
+.reference-entry .mode-label { margin-right: auto; }
+.reference-entry .source-note { font-size: .78rem; line-height: 1.7; }
+.reference-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.reference-tag { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: .75rem; color: var(--gold); }
+.reference-coverage { border: 1px solid var(--line); border-radius: 16px; padding: 25px; margin: 24px 0; }
+.reference-coverage p { line-height: 1.8; color: var(--muted); max-width: 82ch; }
+.reference-coverage h2 { margin-bottom: 12px; }
+@media (max-width: 600px) {
+  .reference-filters label, .reference-filters select { width: 100%; }
+  .reference-pagination span { order: -1; width: 100%; }
+  .reference-coverage { padding: 18px; }
+}

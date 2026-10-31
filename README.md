@@ -5,6 +5,29 @@
 and a searchable reference library.
 Lessons are in English with key Swedish terms.
 
+The reference library retains its 207 original worked topics and adds an offline
+catalog of the JavaScript, Web API and WebAssembly pages in MDN's English search
+index, plus original orientation guides to development tools, frameworks and
+Node.js modules. `javascript-course/reference/sources.json` records the snapshot
+date and coverage. Quick-reference entries contain short attributed excerpts and
+direct links to full documentation; they are not full tutorials. Experimental,
+deprecated, non-standard, HTTPS-only and limited-availability metadata is shown
+where supplied by the source. This is a documented snapshot, not a claim to cover
+every third-party JavaScript package or future API.
+
+Search, area/type/status filters and 40-item pagination keep the larger reference
+usable. Reference bookmarks and studied topics use stable IDs and share the
+existing backup/account system. The lesson path, console predictions and repair
+challenges remain independent.
+
+Reference content lives in `javascript-course/reference/`. Refresh the MDN snapshot
+explicitly with `node scripts/update-reference-catalog.mjs`; normal builds use only
+the checked-in files and need no documentation fetch. The ignored `.reference-cache/`
+lets interrupted refreshes resume. Remove that cache before a full content refresh.
+MDN excerpts are shortened to 24 words and attributed to Mozilla Contributors under
+[CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/), with a source link
+on every entry. Original notes and existing examples are maintained separately.
+
 The website opens on **Home** (`#start`), with a course introduction, a runnable
 example, a four-unit overview, and a Start learning or Continue learning button.
 The JS logo and Home button return here. Learning path (`#course`) lists every

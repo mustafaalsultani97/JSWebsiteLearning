@@ -1,0 +1,19 @@
+{
+  "checked": "2026-10-31",
+  "count": 9461,
+  "indexes": [
+    "https://developer.mozilla.org/en-US/search-index.json",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference",
+    "https://developer.mozilla.org/en-US/docs/Web/API",
+    "https://developer.mozilla.org/en-US/docs/WebAssembly"
+  ],
+  "coverage": "All JavaScript, Web API and WebAssembly pages in the English MDN search index at refresh time.",
+  "attribution": "Mozilla Contributors",
+  "license": "https://creativecommons.org/licenses/by-sa/2.5/",
+  "compatibility": {
+    "source": "https://github.com/mdn/browser-compat-data",
+    "version": "8.1.7",
+    "license": "CC0-1.0"
+  },
+  "note": "Quoted summaries are limited to 24 words per page. Full documentation remains at the linked source."
+}
