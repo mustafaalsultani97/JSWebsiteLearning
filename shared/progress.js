@@ -1,6 +1,7 @@
 // Shared by the browser and the server. No passwords or auth tokens belong here.
 export const MAX_PROGRESS_BYTES = 2_000_000;
 export const CONSOLE_QUESTION_COUNT = 300;
+export const PROBLEM_CHALLENGE_COUNT = 100;
 export const copy = (value) => structuredClone(value);
 export const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const freshProgress = () => ({
@@ -8,7 +9,38 @@ export const freshProgress = () => ({
   settings: { size: 'standard', theme: 'dark', spacing: 'roomy' },
   course: { last: 'first-program', lessons: {} },
   consolePractice: freshConsoleProgress(),
+  problemPractice: freshProblemProgress(),
 });
+
+export const freshProblemProgress = () => ({ current: 0, challenges: {} });
+export function cleanProblemProgress(value = freshProblemProgress()) {
+  requireValue(object(value) && integer(value.current, PROBLEM_CHALLENGE_COUNT - 1) && object(value.challenges)
+    && Object.keys(value.challenges).length <= PROBLEM_CHALLENGE_COUNT);
+  const challenges = {};
+  for (const [key, state] of Object.entries(value.challenges)) {
+    const number = /^problem-(\d{3})$/.exec(key)?.[1];
+    requireValue(number && Number(number) >= 1 && Number(number) <= PROBLEM_CHALLENGE_COUNT && object(state)
+      && typeof state.code === 'string' && state.code.length <= 20000
+      && typeof state.passed === 'boolean' && integer(state.attempts, 1000000));
+    challenges[key] = { code: state.code, passed: state.passed, attempts: state.attempts };
+  }
+  return { current: value.current, challenges };
+}
+
+export function mergeProblemProgress(base = freshProblemProgress(), local = freshProblemProgress(), remote = freshProblemProgress()) {
+  const out = copy(remote);
+  out.current = pick(base.current, local.current, remote.current);
+  for (const key of new Set([...Object.keys(base.challenges), ...Object.keys(local.challenges)])) {
+    const b = base.challenges[key], l = local.challenges[key], r = remote.challenges[key];
+    if (equal(b, l)) continue;
+    if (!l) { delete out.challenges[key]; continue; }
+    out.challenges[key] = r ? {
+      code: pick(b?.code, l.code, r.code), passed: l.passed || r.passed,
+      attempts: Math.max(l.attempts, r.attempts),
+    } : copy(l);
+  }
+  return out;
+}
 
 export const freshConsoleProgress = () => ({ current: 0, answers: {} });
 export function cleanConsoleProgress(value = freshConsoleProgress()) {
@@ -69,6 +101,7 @@ export function cleanProgress(value) {
   requireValue(object(value) && value.version === 1);
   const out = freshProgress();
   out.consolePractice = cleanConsoleProgress(value.consolePractice);
+  out.problemPractice = cleanProblemProgress(value.problemPractice);
   out.saved = ids(value.saved);
   out.done = ids(value.done);
   const s = value.settings;
@@ -131,6 +164,7 @@ export function mergeExtraProgress(base = {}, local = {}, remote = {}) {
 export function mergeProgress(base, local, remote) {
   const out = copy(remote);
   out.consolePractice = mergeConsoleProgress(base.consolePractice, local.consolePractice, remote.consolePractice);
+  out.problemPractice = mergeProblemProgress(base.problemPractice, local.problemPractice, remote.problemPractice);
   out.saved = mergeSet(base.saved, local.saved, remote.saved);
   out.done = mergeSet(base.done, local.done, remote.done);
   for (const key of ['size', 'theme', 'spacing']) {

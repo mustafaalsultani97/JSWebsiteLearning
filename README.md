@@ -1,6 +1,7 @@
 # JavaScript Learning Course
 
 21 lessons, coding exercises, 63 lesson quiz questions, 300 console predictions,
+100 debugging challenges,
 and a searchable reference library.
 Lessons are in English with key Swedish terms.
 
@@ -38,6 +39,31 @@ schema accepts all 300 IDs. `npm test` executes all 300 snippets to verify the
 answer key and checks progress validation, merging and answer/retry behavior.
 Snapshot checks protect the published first 100 and first 200 questions from
 accidental changes to content or answer positions.
+
+## Debugging challenges
+
+**Solve the problem** (`#problems`) sits directly below Predict the console, with
+entry cards on Home and Learning path. Its 100 distinct programs contain missing
+code or a deliberately introduced bug. Ten topic levels progress from values and
+loops to recursive graphs, asynchronous work and integrated caches. Programs range
+from 10 to 74 lines, with longer examples within each level. Every program exceeds
+four nonempty lines.
+
+Learners edit the full program, inspect input/expected-result examples, use a hint,
+and run multiple behavioral checks against `solve(input)`. Failed checks explain
+the mismatch or JavaScript error; passing checks explain the repair and enable the
+next problem. An optional explained solution is available after a first attempt.
+Copy code, reset with undo, a question picker and keyboard execution are included.
+The runner reuses the course's opaque sandbox and no-network worker, with a
+three-second timeout and Stop button. Navigation, account changes and draft edits
+cancel running work so stale results cannot mark another draft complete.
+
+Drafts, attempts and earned completions are saved per `problem-001`–`problem-100`
+in guest storage, account sync and backups. Old progress files receive an empty
+debugging section. Tests run both the broken starter and reference solution for
+all 100 challenges, and cover schema limits, concurrent saves and completion.
+Authored programs live in `javascript-course/problem-challenges/`; after publication,
+keep the order, IDs and function contracts stable to preserve learners' drafts.
 
 ## How the lessons teach
 

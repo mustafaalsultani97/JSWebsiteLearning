@@ -108,7 +108,7 @@ test('two devices save concurrently without losing the other device’s lesson',
   assert.equal(cloud.course.last, 'variables');
 });
 
-test('console answers survive account saves, concurrent devices, reloads and account separation', async t => {
+test('console answers and debugging drafts survive account saves, concurrent devices, reloads and account separation', async t => {
   const h = harness();
   const a = client(h).sync, b = client(h).sync;
   t.after(() => { a.close(); b.close(); });
@@ -117,6 +117,9 @@ test('console answers survive account saves, concurrent devices, reloads and acc
   first.consolePractice.answers['console-001'] = { choice: 1, submitted: true, solved: true };
   second.consolePractice.current = 299;
   second.consolePractice.answers['console-300'] = { choice: 3, submitted: true, solved: true };
+  first.problemPractice.challenges['problem-001'] = { code: 'function solve(n) { return n; }', passed: true, attempts: 2 };
+  second.problemPractice.current = 99;
+  second.problemPractice.challenges['problem-100'] = { code: '// working on a fix', passed: false, attempts: 1 };
   a.save(first); b.save(second);
   assert.deepEqual(await Promise.all([a.flush(), b.flush()]), [true, true]);
   const restored = client(h).sync;
@@ -127,11 +130,16 @@ test('console answers survive account saves, concurrent devices, reloads and acc
     ...first.consolePractice.answers, ...second.consolePractice.answers,
   });
   assert.equal(restored.progress.course.lessons.variables.code, 'let score = 1;');
+  assert.equal(restored.progress.problemPractice.current, 99);
+  assert.deepEqual(restored.progress.problemPractice.challenges, {
+    ...first.problemPractice.challenges, ...second.problemPractice.challenges,
+  });
   h.setUser({ id: 'bob' });
   const bob = client(h, 'bob').sync;
   t.after(() => bob.close());
   await bob.flush();
   assert.deepEqual(bob.progress.consolePractice.answers, {});
+  assert.deepEqual(bob.progress.problemPractice.challenges, {});
 });
 
 test('an offline draft survives closing and is merged after reconnecting', async t => {
