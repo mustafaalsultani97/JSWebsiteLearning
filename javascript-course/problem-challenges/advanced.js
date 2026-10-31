@@ -105,10 +105,8 @@ async function solve(ids) {
   const cache = new Map();
   const attempts = new Map();
   async function load(id) {
-    const count = (attempts.get(id) ?? 0) + 1;
-    attempts.set(id, count);
-    await Promise.resolve();
-    if (count === 1) throw new Error('temporary');
+    attempts.set(id, (attempts.get(id) ?? 0) + 1);
+    if (attempts.get(id) === 1) throw new Error('temporary');
     return id * 2;
   }
   function get(id) {
@@ -221,35 +219,29 @@ async function solve(jobs) {
 
   add(9, 'Repair a least-recently-used cache', 'Process get and put commands for a positive-capacity cache. Reads refresh recency. Return read results and remaining entries from oldest to newest.', String.raw`
 function solve(request) {
-  class Cache {
-    constructor(capacity) {
-      this.capacity = capacity;
-      this.entries = new Map();
-    }
-    get(key) {
-      if (!this.entries.has(key)) return null;
-      const value = this.entries.get(key);
-      this.entries.delete(key);
-      this.entries.set(key, value);
-      return value;
-    }
-    put(key, value) {
-      this.entries.delete(key);
-      this.entries.set(key, value);
-      if (this.entries.size > this.capacity) {
-        const oldest = this.entries.keys().next().value;
-        this.entries.delete(oldest);
-      }
-    }
-  }
-  const cache = new Cache(request.capacity);
+  const entries = new Map();
   const reads = [];
-  for (const command of request.commands) {
-    if (command.type === 'put') cache.put(command.key, command.value);
-    else reads.push(cache.get(command.key));
+  function get(key) {
+    if (!entries.has(key)) return null;
+    const value = entries.get(key);
+    entries.delete(key);
+    entries.set(key, value);
+    return value;
   }
-  return { reads, entries: [...cache.entries] };
-}`, [['this.entries.delete(key);','// TODO: move a cache hit to the newest position.']], [[{capacity:2,commands:[{type:'put',key:'a',value:1},{type:'put',key:'b',value:2},{type:'get',key:'a'},{type:'put',key:'c',value:3},{type:'get',key:'b'}]},{reads:[1,null],entries:[['a',1],['c',3]]},'Refresh on hit'],[{capacity:1,commands:[{type:'put',key:'a',value:0},{type:'get',key:'a'}]},{reads:[0],entries:[['a',0]]},'Cached zero'],[{capacity:2,commands:[]},{reads:[],entries:[]},'No commands']], 'Setting an existing Map key does not change its insertion order.', 'Delete and reinsert a hit to move it to the newest position. Eviction can then remove the first key as the least recently used.');
+  for (const command of request.commands) {
+    if (command.type === 'put') {
+      entries.delete(command.key);
+      entries.set(command.key, command.value);
+      if (entries.size > request.capacity) {
+        const oldest = entries.keys().next().value;
+        entries.delete(oldest);
+      }
+    } else {
+      reads.push(get(command.key));
+    }
+  }
+  return { reads, entries: [...entries] };
+}`, [['entries.delete(key);','// TODO: move a cache hit to the newest position.']], [[{capacity:2,commands:[{type:'put',key:'a',value:1},{type:'put',key:'b',value:2},{type:'get',key:'a'},{type:'put',key:'c',value:3},{type:'get',key:'b'}]},{reads:[1,null],entries:[['a',1],['c',3]]},'Refresh on hit'],[{capacity:1,commands:[{type:'put',key:'a',value:0},{type:'get',key:'a'}]},{reads:[0],entries:[['a',0]]},'Cached zero'],[{capacity:2,commands:[]},{reads:[],entries:[]},'No commands']], 'Setting an existing Map key does not change its insertion order.', 'Delete and reinsert a hit to move it to the newest position. Eviction can then remove the first key as the least recently used.');
   add(9, 'Expire cached values on a logical clock', 'Put values with a TTL using the command time. A get at or after expiry is a miss. Return read results and the count of unexpired cached entries at the final command time.', String.raw`
 function solve(commands) {
   const cache = new Map();
@@ -273,9 +265,7 @@ function solve(commands) {
       reads.push(cache.get(command.key)?.value ?? null);
     }
   }
-  for (const key of cache.keys()) {
-    expire(key);
-  }
+  for (const key of cache.keys()) expire(key);
   return { reads, size: cache.size };
 }`, [['entry.expires <= now','entry.expires < now']], [[[{type:'put',time:0,key:'a',value:7,ttl:5},{type:'get',time:4,key:'a'},{type:'get',time:5,key:'a'}],{reads:[7,null],size:0},'Exact expiry boundary'],[[{type:'put',time:2,key:'z',value:0,ttl:0},{type:'get',time:2,key:'z'}],{reads:[null],size:0},'Immediate expiry'],[[],{reads:[],size:0},'Empty cache']], 'At the expiry time, the entry is already expired.', 'Use an inclusive expiry comparison. A logical command clock makes these checks deterministic without relying on real time.');
   add(9, 'Roll back a failed transaction', 'Apply set operations to a numeric balance. If a negative value is requested, restore the starting balance by undoing accepted changes in reverse order.', String.raw`
@@ -286,9 +276,7 @@ function solve(request) {
   let committed = true;
   try {
     for (const value of request.values) {
-      if (value < 0) {
-        throw new Error('invalid balance');
-      }
+      if (value < 0) throw new Error('invalid balance');
       const previous = balance;
       undo.push(() => {
         balance = previous;
@@ -302,11 +290,7 @@ function solve(request) {
       undo[index]();
     }
   }
-  return {
-    balance,
-    committed,
-    trace
-  };
+  return { balance, committed, trace };
 }`, [['for (let index = undo.length - 1; index >= 0; index--)','for (let index = 0; index < undo.length; index++)']], [[{start:10,values:[20,30,-1]},{balance:10,committed:false,trace:[20,10]},'Reverse rollback'],[{start:5,values:[7,9]},{balance:9,committed:true,trace:[]},'Commit'],[{start:2,values:[-1]},{balance:2,committed:false,trace:[]},'Fail before changes']], 'Undo the most recent change first.', 'Each undo restores the value before its own update. Applying undos in reverse order unwinds the transaction back to its starting state.');
   add(9, 'Replay events exactly once', 'Events have unique IDs but delivery may repeat. Apply each first-seen event once, sum amounts by account, and report duplicate count.', String.raw`
 function solve(events) {
@@ -370,10 +354,6 @@ function solve(commands) {
     }
     return a.sequence - b.sequence;
   }
-  function take() {
-    pending.sort(compare);
-    return pending.shift();
-  }
   for (const command of commands) {
     if (command.type === 'enqueue') {
       pending.push({
@@ -382,7 +362,8 @@ function solve(commands) {
         sequence: sequence++
       });
     } else if (pending.length) {
-      executed.push(take().name);
+      pending.sort(compare);
+      executed.push(pending.shift().name);
     }
   }
   pending.sort(compare);
@@ -391,13 +372,9 @@ function solve(commands) {
   add(9, 'Find a route through a maze', 'Return the shortest number of steps from start to end in a rectangular 0/1 grid, moving up, down, left or right. Blocked or unreachable endpoints return -1.', String.raw`
 function solve(request) {
   const grid = request.grid;
-  const height = grid.length;
-  const width = grid[0].length;
   const [startRow, startColumn] = request.start;
   const [endRow, endColumn] = request.end;
-  if (grid[startRow][startColumn] || grid[endRow][endColumn]) {
-    return -1;
-  }
+  if (grid[startRow][startColumn] || grid[endRow][endColumn]) return -1;
   const queue = [[startRow, startColumn, 0]];
   const seen = new Set([startRow + ',' + startColumn]);
   const directions = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -408,8 +385,8 @@ function solve(request) {
     for (const [dr, dc] of directions) {
       const nextRow = row + dr;
       const nextColumn = column + dc;
-      if (nextRow < 0 || nextRow >= height) continue;
-      if (nextColumn < 0 || nextColumn >= width) continue;
+      if (nextRow < 0 || nextRow >= grid.length) continue;
+      if (nextColumn < 0 || nextColumn >= grid[0].length) continue;
       const key = nextRow + ',' + nextColumn;
       if (grid[nextRow][nextColumn] || seen.has(key)) continue;
       seen.add(key);
@@ -433,11 +410,7 @@ function solve(request) {
   const updated = update(original, request.path, request.next, 0);
   function countContainers(node) {
     if (node === null || typeof node !== 'object') return 0;
-    let count = 1;
-    for (const child of Object.values(node)) {
-      count += countContainers(child);
-    }
-    return count;
+    return 1 + Object.values(node).reduce((sum, child) => sum + countContainers(child), 0);
   }
   return {
     original,
@@ -447,25 +420,12 @@ function solve(request) {
 }`, [['const copied = Array.isArray(node) ? [...node] : { ...node };','const copied = node;']], [[{value:{a:{b:1}},path:['a','b'],next:2},{original:{a:{b:1}},updated:{a:{b:2}},containers:2},'Nested object'],[{value:[{x:1}],path:[0,'x'],next:4},{original:[{x:1}],updated:[{x:4}],containers:2},'Array path'],[{value:{a:1},path:[],next:3},{original:{a:1},updated:3,containers:0},'Replace root']], 'Every container on the modified path needs its own copy.', 'Copy the current container, recursively replace its selected child, and return the copy. Unchanged branches may safely be shared because they are not mutated.');
   add(9, 'Invalidate dependent cached totals', 'A directed acyclic graph defines each node total as its own value plus dependency totals. Process get and set commands; changing a node must invalidate it and every dependent.', String.raw`
 function solve(request) {
-  const values = { ...request.values };
-  const graph = request.graph;
-  const cache = new Map();
-  const dependents = new Map();
-  const outputs = [];
+  const values = { ...request.values }, cache = new Map();
   let calculations = 0;
-  for (const [node, dependencies] of Object.entries(graph)) {
-    for (const dependency of dependencies) {
-      if (!dependents.has(dependency)) dependents.set(dependency, []);
-      dependents.get(dependency).push(node);
-    }
-  }
   function total(node) {
     if (cache.has(node)) return cache.get(node);
     calculations += 1;
-    let result = values[node];
-    for (const dependency of graph[node] ?? []) {
-      result += total(dependency);
-    }
+    const result = values[node] + (request.graph[node] ?? []).reduce((sum, id) => sum + total(id), 0);
     cache.set(node, result);
     return result;
   }
@@ -473,75 +433,41 @@ function solve(request) {
     if (seen.has(node)) return;
     seen.add(node);
     cache.delete(node);
-    for (const parent of dependents.get(node) ?? []) {
-      invalidate(parent, seen);
-    }
+    for (const [parent, dependencies] of Object.entries(request.graph))
+      if (dependencies.includes(node)) invalidate(parent, seen);
   }
+  const outputs = [];
   for (const command of request.commands) {
-    if (command.type === 'set') {
-      values[command.node] = command.value;
-      invalidate(command.node);
-    } else {
-      outputs.push(total(command.node));
-    }
+    if (command.type === 'get') { outputs.push(total(command.node)); continue; }
+    values[command.node] = command.value;
+    invalidate(command.node);
   }
   return { outputs, calculations };
-}`, [['invalidate(parent, seen);','// TODO: invalidate each dependent as well.']], [[{values:{a:1,b:2,c:3},graph:{a:['b'],b:['c']},commands:[{type:'get',node:'a'},{type:'set',node:'c',value:5},{type:'get',node:'a'}]},{outputs:[6,8],calculations:6},'Transitive invalidation'],[{values:{a:2,b:3},graph:{a:['b']},commands:[{type:'get',node:'a'},{type:'get',node:'a'}]},{outputs:[5,5],calculations:2},'Reuse cached totals'],[{values:{a:0},graph:{},commands:[{type:'get',node:'a'},{type:'set',node:'a',value:1},{type:'get',node:'a'}]},{outputs:[0,1],calculations:2},'Direct invalidation']], 'A dependency change makes cached totals above it stale too.', 'The reverse graph identifies dependents. Recursively delete their entries with a visited set so shared parents are handled once.');
+}`, [['invalidate(parent, seen);','cache.has(parent); // TODO: invalidate the dependent.']], [[{values:{a:1,b:2,c:3},graph:{a:['b'],b:['c']},commands:[{type:'get',node:'a'},{type:'set',node:'c',value:5},{type:'get',node:'a'}]},{outputs:[6,8],calculations:6},'Transitive invalidation'],[{values:{a:2,b:3},graph:{a:['b']},commands:[{type:'get',node:'a'},{type:'get',node:'a'}]},{outputs:[5,5],calculations:2},'Reuse cached totals'],[{values:{a:0},graph:{},commands:[{type:'get',node:'a'},{type:'set',node:'a',value:1},{type:'get',node:'a'}]},{outputs:[0,1],calculations:2},'Direct invalidation']], 'A dependency change makes cached totals above it stale too.', 'Find tasks whose dependency list contains the changed node, then recursively delete their cached totals. A visited set handles shared parents once.');
   add(9, 'Repair a shared async dependency service', 'Evaluate a requested root in a DAG, counting each node as 1 plus its dependency totals. A specified node fails only on its first attempt. Retry once after failure, share in-flight work, and keep successful cached nodes.', String.raw`
 async function solve(request) {
-  const cache = new Map();
-  const attempts = new Map();
-  const events = [];
-  let retried = false;
-
-  async function load(node) {
-    const attempt = (attempts.get(node) ?? 0) + 1;
-    attempts.set(node, attempt);
-    await Promise.resolve();
-    if (node === request.failOnce && attempt === 1) {
-      throw new Error('temporary failure');
-    }
-    const children = request.graph[node] ?? [];
-    const values = await Promise.all(children.map(get));
-    return 1 + values.reduce((sum, value) => sum + value, 0);
-  }
-
-  function get(node) {
-    if (cache.has(node)) {
-      return cache.get(node);
-    }
-    const pending = load(node).catch(error => {
+  const cache = new Map(), attempts = new Map();
+  async function get(node) {
+    if (cache.has(node)) return cache.get(node);
+    attempts.set(node, (attempts.get(node) ?? 0) + 1);
+    const pending = Promise.resolve().then(async () => {
+      if (node === request.failOnce && attempts.get(node) === 1) throw Error('temporary failure');
+      const values = await Promise.all((request.graph[node] ?? []).map(get));
+      return 1 + values.reduce((sum, value) => sum + value, 0);
+    }).catch(error => {
       cache.delete(node);
       throw error;
     });
     cache.set(node, pending);
     return pending;
   }
-
-  let value;
-  try {
-    value = await get(request.root);
-    events.push('success');
-  } catch {
-    events.push('retry');
+  let retried = false;
+  const value = await get(request.root).catch(async () => {
     retried = true;
-    // Let sibling rejection handlers remove their failed entries too.
     await Promise.allSettled([...cache.values()]);
-    value = await get(request.root);
-    events.push('success');
-  }
-
-  let totalAttempts = 0;
-  for (const count of attempts.values()) {
-    totalAttempts += count;
-  }
-  const cached = [...cache.keys()].sort();
-  return {
-    value,
-    totalAttempts,
-    cached,
-    retried,
-    events
-  };
+    return get(request.root);
+  });
+  const totalAttempts = [...attempts.values()].reduce((sum, count) => sum + count, 0);
+  return { value, totalAttempts, cached: [...cache.keys()].sort(), retried, events: retried ? ['retry', 'success'] : ['success'] };
 }`, [['cache.delete(node);','// TODO: a failed node must be allowed to run again.']], [[{graph:{root:['left','right'],left:['leaf'],right:['leaf']},root:'root',failOnce:'leaf'},{value:5,totalAttempts:8,cached:['leaf','left','right','root'],retried:true,events:['retry','success']},'Shared failing dependency'],[{graph:{root:['leaf']},root:'root',failOnce:null},{value:2,totalAttempts:2,cached:['leaf','root'],retried:false,events:['success']},'No retry needed'],[{graph:{root:['good','bad']},root:'root',failOnce:'bad'},{value:3,totalAttempts:5,cached:['bad','good','root'],retried:true,events:['retry','success']},'Retain successful sibling']], 'Rejections must remove their own cached promise as they propagate through dependent nodes.', 'Cache promises immediately to share concurrent work. On failure, evict the rejected entry and rethrow so dependent failures are evicted too. The retry reuses successful siblings while rebuilding failed paths.');
 }

@@ -1,5 +1,5 @@
 export function addChallenge(list, level, title, goal, body, changes, cases, hint, explanation) {
-  const solution = body.trim() + '\n\nconst example = ' + JSON.stringify(cases[0][0], null, 2) + ';\nconsole.log(await solve(example));';
+  const solution = body.trim();
   let starter = solution;
   for (const [before, after] of changes) {
     if (!starter.includes(before) || before === after) throw Error('Invalid bug in ' + title);

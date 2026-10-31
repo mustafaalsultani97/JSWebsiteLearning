@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 import { PROBLEM_CHALLENGES as challenges, PROBLEM_LEVELS as levels } from '../javascript-course/problem-challenges/index.js';
 import { executePracticeChecks, createCheckObserver } from '../javascript-course/practice-feedback.js';
 import { freshProgress, freshProblemProgress, cleanProgress, cleanProblemProgress, mergeProgress, copy } from '../shared/progress.js';
-import { renderProblemPractice, problemSolvedCount } from '../javascript-course/problem-practice.js';
+import { renderProblemPractice, problemSolvedCount, problemDraftCode } from '../javascript-course/problem-practice.js';
+import { LEGACY_PROBLEM_STARTERS } from '../javascript-course/problem-challenges/legacy-starters.js';
 
 function execute(challenge, code) {
   const context = vm.createContext({ data: { code, tests: challenge.tests }, logs: [], output: { log() {} } });
   return vm.runInContext(`(${executePracticeChecks.toString()})(data, output, logs, ${createCheckObserver.toString()})`, context, { timeout: 200 });
 }
-test('100 distinct repair challenges have substantial programs and progressively harder topic levels', () => {
+test('100 distinct repair challenges keep increasing topic levels within a 25-line limit', () => {
   assert.equal(challenges.length, 100);
   assert.equal(levels.length, 10);
   assert.equal(new Set(challenges.map(q => q.title)).size, 100);
@@ -19,12 +21,16 @@ test('100 distinct repair challenges have substantial programs and progressively
     assert.equal(challenge.id, `problem-${String(index + 1).padStart(3, '0')}`);
     assert.equal(challenge.level, Math.floor(index / 10));
     assert.ok(challenge.starter.split('\n').filter(line => line.trim()).length > 4);
+    assert.ok(challenge.starter.split('\n').length <= 25, challenge.id);
+    assert.ok(challenge.solution.split('\n').length <= 25, challenge.id);
     assert.ok(challenge.tests.length >= 3);
     assert.ok(challenge.hint.length > 20);
     assert.ok(challenge.explanation.length > 50);
   }
   const average = list => list.reduce((sum, q) => sum + q.starter.split('\n').length, 0) / list.length;
-  assert.ok(average(challenges.slice(90)) > average(challenges.slice(0, 10)) * 3);
+  assert.ok(average(challenges.slice(90)) > average(challenges.slice(0, 10)));
+  const contract = challenges.map(({id,title,level,cases}) => ({id,title,level,cases}));
+  assert.equal(createHash('sha256').update(JSON.stringify(contract)).digest('hex'), '1648b06c24a45901fade9824b9e81a28ef414d05e9c41e38a93b5cb51a447a2c');
 });
 for (const challenge of challenges) {
   test(`${challenge.id}: starter fails and solution passes — ${challenge.title}`, async () => {
@@ -52,6 +58,18 @@ test('old saves default safely and all repair drafts survive a backup round trip
   const restored = cleanProgress(JSON.parse(JSON.stringify(progress)));
   assert.deepEqual(restored, progress);
   assert.equal(problemSolvedCount(restored.problemPractice), 100);
+});
+test('shorter starters replace untouched legacy code while personal drafts and completion remain intact', () => {
+  const q = challenges[99];
+  const state = { code: LEGACY_PROBLEM_STARTERS[q.id], passed: true, attempts: 2 };
+  assert.equal(problemDraftCode(q, state), q.starter);
+  assert.equal(state.passed, true);
+  const personal = { ...state, code: state.code + '\n// My working notes' };
+  assert.equal(problemDraftCode(q, personal), personal.code);
+  const progress = freshProblemProgress();
+  progress.current = 99;
+  progress.challenges[q.id] = personal;
+  assert.match(renderProblemPractice(progress, String, String, 'Saved.'), /Use shorter starter/);
 });
 test('behavioral checks accept a valid repair with a different object property order', async () => {
   const challenge = challenges.find(q => q.title === 'Memoize square calculations');

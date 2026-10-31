@@ -46,8 +46,9 @@ accidental changes to content or answer positions.
 entry cards on Home and Learning path. Its 100 distinct programs contain missing
 code or a deliberately introduced bug. Ten topic levels progress from values and
 loops to recursive graphs, asynchronous work and integrated caches. Programs range
-from 10 to 74 lines, with longer examples within each level. Every program exceeds
-four nonempty lines.
+from 7 to 25 lines. Difficulty grows through the concepts and interactions, while
+every starter and worked solution stays at or below 25 lines and exceeds four
+nonempty lines. Example inputs are shown separately from the editable function.
 
 Learners edit the full program, inspect input/expected-result examples, use a hint,
 and run multiple behavioral checks against `solve(input)`. Failed checks explain
@@ -64,6 +65,9 @@ debugging section. Tests run both the broken starter and reference solution for
 all 100 challenges, and cover schema limits, concurrent saves and completion.
 Authored programs live in `javascript-course/problem-challenges/`; after publication,
 keep the order, IDs and function contracts stable to preserve learners' drafts.
+The published order is fixed in `order.js`. Untouched starters from the longer
+edition automatically display the shorter version; personal edits are kept, with
+an optional shorter-starter reset that can be undone.
 
 ## How the lessons teach
 
