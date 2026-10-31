@@ -2,6 +2,7 @@ import { ORIGINAL_REFERENCE } from './original.js';
 import catalog from './catalog.json' with { type: 'json' };
 import sources from './sources.json' with { type: 'json' };
 import { EXTRA_REFERENCE } from './tools.js';
+import { classifyReferenceTrack } from './tracks.js';
 
 const sections = [
   ['ref-statements', 'Statement & declaration index', 'Keywords'],
@@ -56,7 +57,10 @@ for (const row of catalog) {
 }
 for (const section of sections) section.cards.sort((a, b) => a.title.localeCompare(b.title, 'en'));
 const groupOrder = ['Keywords', 'Core concepts', 'Standard library', 'Browser & tools'];
-export const REFERENCE_DATA = [...ORIGINAL_REFERENCE, ...EXTRA_REFERENCE, ...sections.filter(s => s.cards.length)].sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group));
+export const REFERENCE_DATA = [...ORIGINAL_REFERENCE, ...EXTRA_REFERENCE, ...sections.filter(s => s.cards.length)]
+  .sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group))
+  .map(section => ({ ...section, cards: section.cards.map(card => ({ ...card, track: classifyReferenceTrack(card) })) }));
+export const referenceTrackCounts = Object.fromEntries(['junior', 'senior'].map(track => [track, REFERENCE_DATA.reduce((n, section) => n + section.cards.filter(card => card.track === track).length, 0)]));
 export const referenceStats = { checked: sources.checked, indexed: catalog.length, total: REFERENCE_DATA.reduce((n, s) => n + s.cards.length, 0), sections: REFERENCE_DATA.length };
 const searchCache = new WeakMap();
 export function searchReference(cards, query) {

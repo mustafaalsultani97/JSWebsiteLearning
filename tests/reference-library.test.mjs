@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { REFERENCE_DATA, searchReference, referencePage, referenceCatalogCardHTML, featureLabels } from '../javascript-course/reference/index.js';
 import { ORIGINAL_REFERENCE } from '../javascript-course/reference/original.js';
+import { REFERENCE_TRACKS, classifyReferenceTrack, trackTopics, orderTrackTopics, referenceTrackChoicesHTML } from '../javascript-course/reference/tracks.js';
 import catalog from '../javascript-course/reference/catalog.json' with { type: 'json' };
 import sources from '../javascript-course/reference/sources.json' with { type: 'json' };
 import { cleanProgress, freshProgress, mergeProgress, MAX_PROGRESS_BYTES, MAX_REFERENCE_IDS } from '../shared/progress.js';
@@ -74,4 +75,40 @@ test('catalog cards escape documentation text and retain bookmark and study cont
   assert.match(html, /aria-pressed="true"/);
   assert.match(html, /data-done=.*checked/);
   assert.match(html, /rel="noopener noreferrer"/);
+});
+
+test('junior and senior tracks partition the complete library without changing topic IDs', () => {
+  const junior = trackTopics(cards, 'junior'), senior = trackTopics(cards, 'senior');
+  assert.ok(junior.length > 200 && junior.length < 1000);
+  assert.ok(senior.length > 8000);
+  assert.equal(junior.length + senior.length, cards.length);
+  assert.equal(new Set([...junior, ...senior].map(card => card.id)).size, cards.length);
+  assert.equal(trackTopics(cards, 'all'), cards);
+  for (const card of cards) assert.equal(classifyReferenceTrack(card), card.track);
+});
+test('track recommendations distinguish everyday APIs from advanced and legacy topics', () => {
+  for (const id of ['kw-let', 'kw-function', 'lang-closures', 'builtin-array-map', 'platform-fetch', 'platform-accessibility', 'tool-git', 'tool-vite']) {
+    assert.equal(cards.find(card => card.id === id)?.track, 'junior', id);
+  }
+  for (const id of ['kw-with', 'kw-enum', 'lang-microtasks', 'builtin-proxy-reflect', 'builtin-shared-memory', 'platform-workers', 'tool-playwright', 'node-ref-worker-threads']) {
+    assert.equal(cards.find(card => card.id === id)?.track, 'senior', id);
+  }
+  for (const path of ['/en-US/docs/Web/API/Document/createElement', '/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted']) {
+    assert.equal(cards.find(card => card.source === `https://developer.mozilla.org${path}`)?.track, 'junior', path);
+  }
+  for (const card of cards.filter(card => (card.flags || []).some(flag => ['experimental', 'deprecated', 'discouraged', 'nonstandard'].includes(flag)))) assert.equal(card.track, 'senior', card.title);
+});
+test('each track starts with its curated guides, and search and pagination keep that track', () => {
+  for (const track of ['junior', 'senior']) {
+    const filtered = trackTopics(cards, track);
+    const ordered = orderTrackTopics(filtered, track);
+    assert.deepEqual(ordered.slice(0, REFERENCE_TRACKS[track].first.length).map(card => card.id), REFERENCE_TRACKS[track].first);
+    assert.equal(new Set(ordered.map(card => card.id)).size, filtered.length);
+    const search = searchReference(ordered, 'JavaScript');
+    assert.ok(search.length);
+    assert.ok(referencePage(search, 2).cards.every(card => card.track === track));
+  }
+  const html = referenceTrackChoicesHTML({ junior: 503, senior: 9092 }, String);
+  assert.match(html, /data-view="junior"/);
+  assert.match(html, /data-view="senior"/);
 });

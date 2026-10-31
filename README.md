@@ -20,6 +20,17 @@ usable. Reference bookmarks and studied topics use stable IDs and share the
 existing backup/account system. The lesson path, console predictions and repair
 challenges remain independent.
 
+The Reference desk offers **Junior developer** (`#junior`) and **Senior developer**
+(`#senior`) tracks. Every topic belongs to one track; the original topic IDs and
+content stay intact. Junior focuses on fundamentals, common built-ins, DOM work
+and everyday tools. Senior covers deeper language behavior and advanced or
+specialist APIs, with legacy and experimental entries kept in the reference.
+Suggested starting guides appear first. These are editorial learning suggestions,
+not a checklist of job requirements. `reference/tracks.js` owns the assignments
+and suggested order. The developer-track filter also applies to search, sections
+and bookmarks; **All topics** restores the full library. The track choice is
+remembered on this device independently of lesson and exercise progress.
+
 Reference content lives in `javascript-course/reference/`. Refresh the MDN snapshot
 explicitly with `node scripts/update-reference-catalog.mjs`; normal builds use only
 the checked-in files and need no documentation fetch. The ignored `.reference-cache/`

@@ -20,7 +20,8 @@ import { createCheckObserver, executePracticeChecks, explainPracticeError, feedb
 import { COURSE, lessonProgressKey, lessonProgressKeys, initialLessonCode, hasLessonWork } from "./lessons/index.js";
 
 /* 2. REFERENCE LIBRARY — the original searchable JavaScript topic cards. */
-import { REFERENCE_DATA as DATA, referenceStats, searchReference, referencePage, referenceCatalogCardHTML, referenceOverviewHTML } from "./reference/index.js";
+import { REFERENCE_DATA as DATA, referenceStats, referenceTrackCounts, searchReference, referencePage, referenceCatalogCardHTML, referenceOverviewHTML } from "./reference/index.js";
+import { REFERENCE_TRACKS, trackTopics, orderTrackTopics, referenceTrackChoicesHTML } from './reference/tracks.js';
 /* 3. REFERENCE PLAYGROUND SANDBOX
   Advanced infrastructure: this HTML string creates an isolated frame and worker.
   The worker runs practice code separately so a loop cannot freeze the study page.
@@ -227,8 +228,18 @@ let currentView = "start",
   level = "all",
   completion = "all";
 let referenceCurrentPage = 1, referenceType = 'all', referenceGroup = 'all', referenceStatus = 'all';
+let referenceTrack = 'all';
+try {
+  const savedTrack = localStorage.getItem('javascript-reference-track-v1');
+  if (savedTrack === 'junior' || savedTrack === 'senior') referenceTrack = savedTrack;
+} catch { /* Reference filtering also works without storage. */ }
+function setReferenceTrack(track) {
+  referenceTrack = track === 'junior' || track === 'senior' ? track : 'all';
+  try { localStorage.setItem('javascript-reference-track-v1', referenceTrack); } catch { /* Keep the selection for this session. */ }
+}
 function navHTML() {
-  return groups
+  const sections = DATA.map(section => ({ ...section, cards: trackTopics(section.cards, referenceTrack) })).filter(section => section.cards.length);
+  return (REFERENCE_TRACKS[referenceTrack] ? `<p class="reference-nav-caption">${REFERENCE_TRACKS[referenceTrack].title} topics</p>` : '') + groups
     .map(
       (group, index) =>
         '<div class="nav-group" style="color:var(--' +
@@ -236,7 +247,7 @@ function navHTML() {
         ')">' +
         group +
         "</div>" +
-        DATA.filter((s) => s.group === group)
+        sections.filter((s) => s.group === group)
           .map(
             (s) =>
               '<button class="nav-button" data-view="' +
@@ -252,9 +263,11 @@ function navHTML() {
     .join("");
 }
 $("#navigation").innerHTML = navHTML();
+$('#junior-count').textContent = referenceTrackCounts.junior;
+$('#senior-count').textContent = referenceTrackCounts.senior;
 function selected(cards) {
   const studied = new Set(progress.done);
-  return cards.filter(
+  return trackTopics(cards, referenceTrack).filter(
     (c) =>
       (level === "all" || c.level === level) &&
       (referenceType === 'all' || (referenceType === 'catalog') === Boolean(c.catalog)) &&
@@ -269,31 +282,12 @@ function toolbarHTML() {
 }
 function referenceFiltersHTML() {
   const select = (id, label, value, options) => `<label>${label}<select id="${id}" aria-label="${label}">${options.map(([key, text]) => `<option value="${key}" ${value === key ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
-  return `<div class="reference-filters">${select('reference-type', 'Entry type', referenceType, [['all', 'Examples and reference'], ['examples', 'Guides and worked examples'], ['catalog', 'Quick reference']])}${select('reference-group', 'Reference area', referenceGroup, [['all', 'All four areas'], ...groups.map(group => [group, group])])}${select('reference-status', 'Feature status', referenceStatus, [['all', 'Every status'], ['experimental', 'Experimental'], ['deprecated', 'Deprecated'], ['discouraged', 'Discouraged'], ['nonstandard', 'Non-standard'], ['limited', 'Limited availability'], ['secure', 'HTTPS required']])}</div>`;
+  return `<div class="reference-filters">${select('reference-track', 'Developer track', referenceTrack, [['all', 'All topics'], ['junior', 'Junior developer'], ['senior', 'Senior developer']])}${select('reference-type', 'Entry type', referenceType, [['all', 'Examples and reference'], ['examples', 'Guides and worked examples'], ['catalog', 'Quick reference']])}${select('reference-group', 'Reference area', referenceGroup, [['all', 'All four areas'], ...groups.map(group => [group, group])])}${select('reference-status', 'Feature status', referenceStatus, [['all', 'Every status'], ['experimental', 'Experimental'], ['deprecated', 'Deprecated'], ['discouraged', 'Discouraged'], ['nonstandard', 'Non-standard'], ['limited', 'Limited availability'], ['secure', 'HTTPS required']])}</div>`;
 }
 const emptyHTML = (title, desc) =>
   '<div class="empty"><h2>' + title + "</h2><p>" + desc + "</p></div>";
 function renderHome() {
-  const starts = groups.map((g) => DATA.find((s) => s.group === g));
-  const pathText = [
-    [
-      "Start with keywords",
-      "Decisions, loops, variables, functions and the original 37 terms.",
-    ],
-    [
-      "Understand the language",
-      "Types, operators, closures, prototypes, modules and execution.",
-    ],
-    [
-      "Use the standard library",
-      "Strings, arrays, collections, dates, regular expressions and Promises.",
-    ],
-    [
-      "Work with the platform",
-      "The DOM, events, browser APIs, Node.js and practical habits.",
-    ],
-  ];
-  return `<section class="hero"><div class="eyebrow">Your offline study companion</div><h1>JavaScript,<br><span class="soft">one topic at a time.</span></h1><p class="lead">Clear notes. Small examples. Room to experiment.<br>Keep the language close while you learn to build with it.</p><div class="hero-stats"><div><strong>${allCards.length}</strong>searchable topics</div><div><strong>${DATA.length}</strong>organized sections</div><div><strong>${allCards.filter((c) => c.mode === "run").length}</strong>runnable examples</div><div><strong>4</strong>reference areas</div></div></section>${referenceOverviewHTML(escapeHTML)}<div class="section-label"><h2>Choose where to begin</h2><span class="subtle">A suggested learning order</span></div><div class="paths">${starts.map((s, i) => '<button class="path" data-view="' + s.id + '"><div class="path-top"><span class="path-number">0' + (i + 1) + "</span>" + chevron + "</div><h3>" + pathText[i][0] + "</h3><p>" + pathText[i][1] + "</p></button>").join("")}</div><section class="comparison"><h2>Stop, skip or return</h2><div class="compare-grid"><div><code>break</code><p>Stop the loop.</p><small>Also exits a switch.</small></div><div><code>continue</code><p>Skip to the next iteration.</p><small>Stays inside the loop.</small></div><div><code>return</code><p>Exit the function, optionally with a value.</p><small>No value supplied? Returns undefined in a normal function.</small></div></div></section><div class="section-label"><h2>Six useful first steps</h2><button class="btn" data-view="all">Explore all topics</button></div><div class="topic-grid">${["kw-let", "kw-const", "kw-if", "kw-for", "kw-function", "kw-return"].map((id) => cardHTML(cardsById.get(id))).join("")}</div>`;
+  return `<header class="reference-home-intro"><span class="course-kicker">YOUR REFERENCE LIBRARY</span><h1>Learn for the work you want to do.</h1><p>JavaScript fundamentals or deeper technical skills — choose where to focus next.</p><span class="subtle">${referenceStats.total.toLocaleString('en')} topics · ${DATA.length} sections · Shared bookmarks and study progress</span></header>${referenceTrackChoicesHTML(referenceTrackCounts, escapeHTML)}${referenceOverviewHTML(escapeHTML)}`;
 }
 function render() {
   problemPractice?.stop();
@@ -304,6 +298,7 @@ function render() {
   document.body.classList.toggle("console-mode", currentView === "console" && !query);
   document.body.classList.toggle("problem-mode", currentView === "problems" && !query);
   updateCourseBadge();
+  $('#navigation').innerHTML = navHTML();
   document.querySelectorAll("[data-view]").forEach((b) => {
     if (
       (b.dataset.view === currentView ||
@@ -360,6 +355,12 @@ function render() {
     desc =
       "Explore the full study guide or narrow it by learning level and progress.";
     breadcrumb = "Study desk / All topics";
+  } else if (REFERENCE_TRACKS[currentView]) {
+    const track = REFERENCE_TRACKS[currentView];
+    cards = orderTrackTopics(allCards, currentView);
+    title = track.title;
+    desc = track.description;
+    breadcrumb = 'Reference library / ' + track.label;
   } else {
     const section = DATA.find((s) => s.id === currentView);
     if (!section) {
@@ -383,6 +384,7 @@ function render() {
     "</h1><p>" +
     escapeHTML(desc) +
     "</p></div>" +
+    (REFERENCE_TRACKS[currentView] && !query ? `<aside class="reference-track-focus"><h2>What you’ll learn</h2><ul>${REFERENCE_TRACKS[currentView].focus.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul><p>Suggested starting guides come first. Use search and filters to explore topics when you need them.</p></aside>` : '') +
     toolbarHTML() + referenceFiltersHTML() + pagination +
     '<p class="subtle" style="margin-bottom:22px" role="status">' +
     shown.length +
@@ -410,18 +412,19 @@ function render() {
           "Try another search or change the filters. Use the bookmark button on any topic to save it.",
         )) + (page.pages > 1 ? pagination : '');
   if (!query && DATA.some((s) => s.id === currentView)) {
-    const i = DATA.findIndex((s) => s.id === currentView);
+    const trackSections = DATA.filter(section => trackTopics(section.cards, referenceTrack).length);
+    const i = trackSections.findIndex((s) => s.id === currentView);
     view.insertAdjacentHTML(
       "beforeend",
       '<div class="section-end">' +
         (i > 0
           ? '<button class="btn" data-view="' +
-            DATA[i - 1].id +
+            trackSections[i - 1].id +
             '">← Previous section</button>'
           : "<span></span>") +
-        (i < DATA.length - 1
+        (i < trackSections.length - 1
           ? '<button class="btn" data-view="' +
-            DATA[i + 1].id +
+            trackSections[i + 1].id +
             '">Next section →</button>'
           : '<button class="btn" data-view="home">Back to study desk</button>') +
         "</div>",
@@ -445,6 +448,8 @@ function navigate(id, hash = true) {
   clearTimeout(courseDraftTimer);
   persist();
   currentView = validView(id) ? id : "start";
+  if (REFERENCE_TRACKS[currentView]) setReferenceTrack(currentView);
+  else if (currentView === 'all') setReferenceTrack('all');
   if (currentView.startsWith("lesson-")) {
     progress.course.last = currentView.slice(7);
     persist();
@@ -695,8 +700,15 @@ document.addEventListener("click", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
-  if (['reference-type', 'reference-group', 'reference-status'].includes(e.target.id)) {
+  if (['reference-track', 'reference-type', 'reference-group', 'reference-status'].includes(e.target.id)) {
     const control = e.target.id;
+    if (control === 'reference-track') {
+      setReferenceTrack(e.target.value);
+      if (REFERENCE_TRACKS[currentView] || currentView === 'all') {
+        currentView = referenceTrack === 'all' ? 'all' : referenceTrack;
+        try { history.replaceState(null, '', '#' + currentView); } catch { /* Filters also work without history. */ }
+      }
+    }
     if (e.target.id === 'reference-type') referenceType = e.target.value;
     if (e.target.id === 'reference-group') referenceGroup = e.target.value;
     if (e.target.id === 'reference-status') referenceStatus = e.target.value;
@@ -933,7 +945,7 @@ function mergeCourse(incoming) {
 function validView(id) {
   return (
     DATA.some((s) => s.id === id) ||
-    ["start", "course", "console", "problems", "home", "saved", "all"].includes(id) ||
+    ["start", "course", "console", "problems", "home", "saved", "all", "junior", "senior"].includes(id) ||
     COURSE.lessons.some((l) => "lesson-" + l.id === id)
   );
 }

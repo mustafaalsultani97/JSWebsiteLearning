@@ -2454,6 +2454,26 @@ body.course-mode .content {
   padding: 32px;
 }
 /* Reference-only additions: bounded result pages and documentation metadata. */
+.reference-home-intro { margin: 8px 0 28px; max-width: 850px; }
+.reference-home-intro h1 { margin: 10px 0 12px; font-size: clamp(1.8rem, 3vw, 2.7rem); line-height: 1.2; }
+.reference-home-intro p, .reference-track-choices > p { color: var(--muted); }
+.reference-track-choices h2 { margin-bottom: 6px; font-size: 1.25rem; }
+.reference-track-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 20px; }
+.reference-track-card { display: flex; flex-direction: column; padding: 25px; border: 1px solid var(--line); border-top: 3px solid var(--mint); border-radius: 16px; background: var(--panel); }
+.reference-track-card.is-senior { border-top-color: var(--pink); }
+.reference-track-card h3 { font-size: 1.6rem; margin: 8px 0 12px; }
+.reference-track-card p, .reference-track-card li { font-size: .9rem; line-height: 1.65; }
+.reference-track-card p { color: var(--muted); }
+.reference-track-card ul { padding-left: 20px; margin: 12px 0 24px; }
+.reference-track-card li + li { margin-top: 6px; }
+.reference-track-card .btn { margin-top: auto; text-align: center; }
+.reference-track-card small { display: block; color: var(--muted); font-size: .75rem; margin-top: 12px; }
+.reference-track-focus { border-left: 3px solid var(--accent); background: var(--panel); border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; }
+.reference-track-focus h2 { font-size: 1rem; margin-bottom: 10px; }
+.reference-track-focus ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 30px; padding-left: 18px; font-size: .85rem; }
+.reference-track-focus p, .reference-nav-caption { color: var(--muted); font-size: .78rem; }
+.reference-track-focus p { margin-top: 12px; }
+.reference-nav-caption { padding: 12px 12px 0; }
 .reference-filters { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 22px; }
 .reference-filters label { display: grid; gap: 7px; color: var(--muted); font-size: .84rem; }
 .reference-filters select { min-width: 170px; max-width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); }
@@ -2469,6 +2489,8 @@ body.course-mode .content {
 .reference-coverage p { line-height: 1.8; color: var(--muted); max-width: 82ch; }
 .reference-coverage h2 { margin-bottom: 12px; }
 @media (max-width: 600px) {
+  .reference-track-grid, .reference-track-focus ul { grid-template-columns: 1fr; }
+  .reference-track-card { padding: 20px; }
   .reference-filters label, .reference-filters select { width: 100%; }
   .reference-pagination span { order: -1; width: 100%; }
   .reference-coverage { padding: 18px; }
